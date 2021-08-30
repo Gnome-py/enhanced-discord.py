@@ -25,7 +25,7 @@ DEALINGS IN THE SOFTWARE.
 from .errors import UnexpectedQuoteError, InvalidEndOfQuotedStringError, ExpectedClosingQuoteError
 
 # map from opening quotes to closing quotes
-_quotes = {
+supported_quotes = {
     '"': '"',
     "‘": "’",
     "‚": "‛",
@@ -44,7 +44,7 @@ _quotes = {
     "《": "》",
     "〈": "〉",
 }
-_all_quotes = set(_quotes.keys()) | set(_quotes.values())
+_all_quotes = set(supported_quotes.keys()) | set(supported_quotes.values())
 
 class StringView:
     def __init__(self, buffer):
@@ -129,7 +129,7 @@ class StringView:
         if current is None:
             return None
 
-        close_quote = _quotes.get(current)
+        close_quote = supported_quotes.get(current)
         is_quoted = bool(close_quote)
         if is_quoted:
             result = []

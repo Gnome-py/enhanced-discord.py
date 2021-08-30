@@ -23,6 +23,7 @@ DEALINGS IN THE SOFTWARE.
 """
 from __future__ import annotations
 
+
 from typing import (
     Any,
     Callable,
@@ -44,6 +45,7 @@ import asyncio
 import functools
 import inspect
 import datetime
+from operator import itemgetter
 
 import discord
 
@@ -59,6 +61,7 @@ if TYPE_CHECKING:
     from typing_extensions import Concatenate, ParamSpec, TypeGuard
 
     from discord.message import Message
+    from discord.types.interactions import EditApplicationCommand
 
     from ._types import (
         Coro,
@@ -106,6 +109,16 @@ ContextT = TypeVar('ContextT', bound='Context')
 GroupT = TypeVar('GroupT', bound='Group')
 HookT = TypeVar('HookT', bound='Hook')
 ErrorT = TypeVar('ErrorT', bound='Error')
+application_option_type_lookup = {
+    str: 3,
+    bool: 5,
+    int: 4,
+    (discord.Member, discord.User): 6, # Preferably discord.abc.User, but 'Protocols with non-method members don't support issubclass()'
+    (discord.abc.GuildChannel, discord.DMChannel): 7,
+    discord.Role: 8,
+    discord.Object: 9,
+    float: 10
+}
 
 if TYPE_CHECKING:
     P = ParamSpec('P')
@@ -269,8 +282,8 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
         which calls converters. If ``False`` then cooldown processing is done
         first and then the converters are called second. Defaults to ``False``.
     extras: :class:`dict`
-        A dict of user provided extras to attach to the Command. 
-        
+        A dict of user provided extras to attach to the Command.
+
         .. note::
             This object may be copied by the library.
 
@@ -309,6 +322,8 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
 
         self.callback = func
         self.enabled: bool = kwargs.get('enabled', True)
+        self.slash_command: Optional[bool] = kwargs.get("slash_command", None)
+        self.normal_command: Optional[bool] = kwargs.get("normal_command", None)
 
         help_doc = kwargs.get('help')
         if help_doc is not None:
@@ -344,7 +359,7 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
             cooldown = func.__commands_cooldown__
         except AttributeError:
             cooldown = kwargs.get('cooldown')
-        
+
         if cooldown is None:
             buckets = CooldownMapping(cooldown, BucketType.default)
         elif isinstance(cooldown, CooldownMapping):
@@ -1098,7 +1113,13 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
             A boolean indicating if the command can be invoked.
         """
 
-        if not self.enabled:
+        if not self.enabled or (
+            ctx.interaction is not None
+            and self.slash_command is False
+        ) or (
+            ctx.interaction is None
+            and self.normal_command is False
+        ):
             raise DisabledCommand(f'{self.name} command is disabled')
 
         original = ctx.command
@@ -1124,6 +1145,54 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
             return await discord.utils.async_all(predicate(ctx) for predicate in predicates)  # type: ignore
         finally:
             ctx.command = original
+
+    def to_application_command(self) -> Optional[EditApplicationCommand]:
+        if self.slash_command is False:
+            return
+
+        payload = {
+            "name": self.name,
+            "description": self.short_doc or "no description",
+            "options": []
+        }
+
+        option_descriptions = self.extras.get("option_descriptions", {})
+        for name, param in self.clean_params.items():
+            annotation: Type[Any] = param.annotation if param.annotation is not param.empty else str
+            origin = getattr(param.annotation, "__origin__", None)
+
+            if origin is None and isinstance(annotation, Greedy):
+                annotation = annotation.converter
+                origin = Greedy
+
+            option: Dict[str, Any] = {
+                "name": name,
+                "required": not self._is_typing_optional(annotation),
+                "description": option_descriptions.get(name, "no description"),
+            }
+
+            if not option["required"] and origin is not None and len(annotation.__args__) == 2:
+                # Unpack Optional[T] (Union[T, None]) into just T
+                annotation, origin = annotation.__args__[0], None
+
+            if origin is None:
+                option["type"] = next(
+                    (num for t, num in application_option_type_lookup.items()
+                    if issubclass(annotation, t)), str
+                )
+            elif origin is Literal and len(origin.__args__) <= 25: # type: ignore
+                option["choices"] = [{
+                    "name": literal_value,
+                    "value": literal_value
+                } for literal_value in origin.__args__] # type: ignore
+            else:
+                option["type"] = 3 # STRING
+
+            payload["options"].append(option)
+
+        # Now we have all options, make sure required is before optional.
+        payload["options"] = sorted(payload["options"], key=itemgetter("required"), reverse=True)
+        return payload # type: ignore
 
 class GroupMixin(Generic[CogT]):
     """A mixin that implements common functionality for classes that behave

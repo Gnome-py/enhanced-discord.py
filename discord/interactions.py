@@ -58,11 +58,11 @@ if TYPE_CHECKING:
     from aiohttp import ClientSession
     from .embeds import Embed
     from .ui.view import View
-    from .channel import VoiceChannel, StageChannel, TextChannel, CategoryChannel, StoreChannel, PartialMessageable
+    from .channel import TextChannel, CategoryChannel, StoreChannel, PartialMessageable
     from .threads import Thread
 
     InteractionChannel = Union[
-        VoiceChannel, StageChannel, TextChannel, CategoryChannel, StoreChannel, Thread, PartialMessageable
+        TextChannel, CategoryChannel, StoreChannel, Thread, PartialMessageable
     ]
 
 MISSING: Any = utils.MISSING
@@ -179,7 +179,7 @@ class Interaction:
                 type = ChannelType.text if self.guild_id is not None else ChannelType.private
                 return PartialMessageable(state=self._state, id=self.channel_id, type=type)
             return None
-        return channel
+        return channel # type: ignore
 
     @property
     def permissions(self) -> Permissions:

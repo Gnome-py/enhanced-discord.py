@@ -28,17 +28,23 @@ from __future__ import annotations
 import asyncio
 import collections
 import collections.abc
+
 import inspect
 import importlib.util
 import sys
 import traceback
 import types
-from typing import Any, Callable, Mapping, List, Dict, TYPE_CHECKING, Optional, TypeVar, Type, Union
+from typing import Any, Callable, cast, Mapping, List, Dict, TYPE_CHECKING, Optional, TypeVar, Type, Union
 
 import discord
+from discord.types.interactions import (
+    ApplicationCommandInteractionData,
+    _ApplicationCommandInteractionDataOptionString
+)
 
 from .core import GroupMixin
-from .view import StringView
+from .converter import Greedy
+from .view import StringView, supported_quotes
 from .context import Context
 from . import errors
 from .help import HelpCommand, DefaultHelpCommand
@@ -65,6 +71,13 @@ MISSING: Any = discord.utils.MISSING
 T = TypeVar('T')
 CFT = TypeVar('CFT', bound='CoroFunc')
 CXT = TypeVar('CXT', bound='Context')
+
+class _FakeSlashMessage(discord.PartialMessage):
+    activity = application = edited_at = reference = webhook_id = None
+    attachments = components = reactions = stickers = []
+    author: Union[discord.User, discord.Member]
+    tts = False
+
 
 def when_mentioned(bot: Union[Bot, AutoShardedBot], msg: Message) -> List[str]:
     """A callable that implements a command prefix equivalent to being mentioned.
@@ -120,9 +133,17 @@ class _DefaultRepr:
 _default = _DefaultRepr()
 
 class BotBase(GroupMixin):
-    def __init__(self, command_prefix, help_command=_default, description=None, **options):
+    def __init__(self,
+        command_prefix,
+        help_command=_default,
+        description=None,
+        message_commands: bool = True,
+        slash_commands: bool = False, **options
+    ):
         super().__init__(**options)
         self.command_prefix = command_prefix
+        self.slash_commands = slash_commands
+        self.message_commands = message_commands
         self.extra_events: Dict[str, List[CoroFunc]] = {}
         self.__cogs: Dict[str, Cog] = {}
         self.__extensions: Dict[str, types.ModuleType] = {}
@@ -142,10 +163,16 @@ class BotBase(GroupMixin):
         if self.owner_ids and not isinstance(self.owner_ids, collections.abc.Collection):
             raise TypeError(f'owner_ids must be a collection not {self.owner_ids.__class__!r}')
 
+        if not (message_commands or slash_commands):
+            raise TypeError("Both message_commands and slash_commands are disabled.")
+        elif slash_commands:
+            self.slash_command_guild = options['slash_command_guild']
+
         if help_command is _default:
             self.help_command = DefaultHelpCommand()
         else:
             self.help_command = help_command
+
 
     # internal helpers
 
@@ -1031,7 +1058,91 @@ class BotBase(GroupMixin):
         await self.invoke(ctx)
 
     async def on_message(self, message):
-        await self.process_commands(message)
+        if self.message_commands:
+            await self.process_commands(message)
+
+    async def on_interaction(self, interaction: discord.Interaction):
+        if not self.slash_commands or interaction.type != discord.InteractionType.application_command:
+            return
+
+        assert interaction.user is not None
+
+        interaction.data = cast(ApplicationCommandInteractionData, interaction.data)
+
+        # Ensure the interaction channel is usable
+        channel = interaction.channel
+        if channel is None or isinstance(channel, discord.PartialMessageable):
+            if interaction.guild is None:
+                channel = await interaction.user.create_dm()
+            elif interaction.channel_id is not None:
+                channel = await interaction.guild.fetch_channel(interaction.channel_id)
+            else:
+                return # cannot do anything without stable channel
+
+        # Fetch out subcommands from the options
+        command_name = interaction.data['name']
+        command_options = interaction.data.get('options') or []
+        for option in command_options:
+            if option['type'] in {1, 2}:
+                command_name = option['name']
+                command_options = option.get('options') or []
+
+                command_name += f'{command_name} '
+
+        command = self.get_command(command_name)
+        if command is None:
+            raise errors.CommandNotFound(f'Command "{command_name}" is not found')
+
+        message: discord.Message = _FakeSlashMessage(id=interaction.id, channel=channel) # type: ignore
+        message.author = interaction.user
+
+        # Fetch a valid prefix, so process_commands can function
+        prefix = await self.get_prefix(message)
+        if isinstance(prefix, list):
+            prefix = prefix[0]
+
+        # Add arguments to fake message content, in the right order
+        message.content = f'{prefix}{command_name} '
+        for name, param in command.clean_params.items():
+            option = next((o for o in command_options if o['name'] == name), None) # type: ignore
+            print(name, param, option)
+
+            if option is None:
+                if not command._is_typing_optional(param.annotation):
+                    raise errors.MissingRequiredArgument(param)
+            elif (
+                option["type"] == 3
+                and " " in option["value"] # type: ignore
+                and param.kind != param.KEYWORD_ONLY
+                and not isinstance(param.annotation, Greedy)
+            ):
+                # String with space in without "consume rest"
+                option = cast(_ApplicationCommandInteractionDataOptionString, option)
+
+                # we need to quote this string otherwise we may spill into
+                # other parameters and cause all kinds of trouble, as many
+                # quotes are supported and some may be in the option, we
+                # loop through all supported quotes and if neither open or
+                # close are in the string, we add them
+                quoted = False
+                string = option['value']
+                for open, close in supported_quotes.items():
+                    if not (open in string or close in string):
+                        message.content += f"{open}{string}{close} "
+                        quoted = True
+                        break
+
+                # all supported quotes are in the message and we cannot add any
+                # safely, very unlikely but still got to be covered
+                if not quoted:
+                    raise errors.UnexpectedQuoteError(string)
+            else:
+                message.content += f'{option.get("value", "")} '
+
+        ctx = await self.get_context(message)
+        ctx.interaction = interaction
+        await self.invoke(ctx)
+
 
 class Bot(BotBase, discord.Client):
     """Represents a discord bot.
@@ -1103,7 +1214,20 @@ class Bot(BotBase, discord.Client):
 
         .. versionadded:: 1.7
     """
-    pass
+    # Needs to be moved to somewhere else, preferably BotBase
+    async def login(self, token: str) -> None:
+        await super().login(token=token)
+        await self._ready_commands()
+
+    async def _ready_commands(self):
+        if not self.slash_commands:
+            return
+
+        application = self.application_id or (await self.application_info()).id
+        commands = [scmd for cmd in self.commands if (scmd := cmd.to_application_command()) is not None]
+
+        await self.http.bulk_upsert_guild_commands(application, self.slash_command_guild, payload=commands)
+
 
 class AutoShardedBot(BotBase, discord.AutoShardedClient):
     """This is similar to :class:`.Bot` except that it is inherited from

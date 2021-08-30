@@ -41,6 +41,7 @@ if TYPE_CHECKING:
     from discord.member import Member
     from discord.state import ConnectionState
     from discord.user import ClientUser, User
+    from discord.interactions import Interaction
     from discord.voice_client import VoiceProtocol
 
     from .bot import Bot, AutoShardedBot
@@ -121,6 +122,7 @@ class Context(discord.abc.Messageable, Generic[BotT]):
         A boolean that indicates if the command failed to be parsed, checked,
         or invoked.
     """
+    interaction: Optional[Interaction] = None
 
     def __init__(self,
         *,
