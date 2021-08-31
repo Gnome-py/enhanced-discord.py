@@ -28,6 +28,7 @@ from __future__ import annotations
 import asyncio
 import collections
 import collections.abc
+from discord.http import HTTPClient
 
 import inspect
 import importlib.util
@@ -166,7 +167,7 @@ class BotBase(GroupMixin):
         if not (message_commands or slash_commands):
             raise TypeError("Both message_commands and slash_commands are disabled.")
         elif slash_commands:
-            self.slash_command_guild = options['slash_command_guild']
+            self.slash_command_guild = options.get('slash_command_guild', None)
 
         if help_command is _default:
             self.help_command = DefaultHelpCommand()
@@ -182,6 +183,15 @@ class BotBase(GroupMixin):
         ev = 'on_' + event_name
         for event in self.extra_events.get(ev, []):
             self._schedule_event(event, ev, *args, **kwargs)  # type: ignore
+
+    async def _create_application_commands(self, application_id: int, http: HTTPClient):
+        commands = [scmd for cmd in self.commands if not cmd.hidden and (scmd := cmd.to_application_command()) is not None]
+
+        if self.slash_command_guild is None:
+            await http.bulk_upsert_global_commands(application_id, payload=commands)
+        else:
+            await http.bulk_upsert_guild_commands(application_id, self.slash_command_guild, payload=commands)
+
 
     @discord.utils.copy_doc(discord.Client.close)
     async def close(self) -> None:
@@ -1211,23 +1221,20 @@ class Bot(BotBase, discord.Client):
 
         .. versionadded:: 1.7
     """
-    # Needs to be moved to somewhere else, preferably BotBase
-    async def login(self, token: str) -> None:
-        await super().login(token=token)
-        await self._ready_commands()
-
-    async def _ready_commands(self):
+    async def setup(self):
         if not self.slash_commands:
             return
 
         application = self.application_id or (await self.application_info()).id
-        commands = [scmd for cmd in self.commands if not cmd.hidden and (scmd := cmd.to_application_command()) is not None]
-
-        await self.http.bulk_upsert_guild_commands(application, self.slash_command_guild, payload=commands)
-
+        await self._create_application_commands(application, self.http)
 
 class AutoShardedBot(BotBase, discord.AutoShardedClient):
     """This is similar to :class:`.Bot` except that it is inherited from
     :class:`discord.AutoShardedClient` instead.
     """
-    pass
+    async def setup(self):
+        if not self.slash_commands:
+            return
+
+        application = self.application_id or (await self.application_info()).id
+        await self._create_application_commands(application, self.http)
