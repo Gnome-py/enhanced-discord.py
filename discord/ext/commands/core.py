@@ -1146,15 +1146,19 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
         finally:
             ctx.command = original
 
-    def to_application_command(self) -> Optional[EditApplicationCommand]:
+    def to_application_command(self, nested: int = 0) -> Optional[EditApplicationCommand]:
         if self.slash_command is False:
             return
+        elif nested == 3:
+            raise ValueError(f"{self.qualified_name} is too deeply nested!")
 
         payload = {
             "name": self.name,
             "description": self.short_doc or "no description",
             "options": []
         }
+        if nested != 0:
+            payload["type"] = 1
 
         option_descriptions = self.extras.get("option_descriptions", {})
         for name, param in self.clean_params.items():
@@ -1560,6 +1564,22 @@ class Group(GroupMixin[CogT], Command[CogT, P, T]):
             view.index = previous
             view.previous = previous
             await super().reinvoke(ctx, call_hooks=call_hooks)
+
+    def to_application_command(self, nested: int = 0) -> Optional[EditApplicationCommand]:
+        if self.slash_command is False:
+            return
+        elif nested == 2:
+            raise ValueError(f"{self.qualified_name} is too deeply nested for slash commands!")
+
+        return { # type: ignore
+            "name": self.name,
+            "type": int(not (nested - 1)) + 1,
+            "description": self.short_doc or 'no description',
+            "options": [
+                cmd.to_application_command(nested=nested+1)
+                for cmd in self.commands
+            ]
+        }
 
 # Decorators
 

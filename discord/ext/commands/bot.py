@@ -1081,12 +1081,11 @@ class BotBase(GroupMixin):
         # Fetch out subcommands from the options
         command_name = interaction.data['name']
         command_options = interaction.data.get('options') or []
-        for option in command_options:
-            if option['type'] in {1, 2}:
-                command_name = option['name']
-                command_options = option.get('options') or []
-
-                command_name += f'{command_name} '
+        while any(o["type"] in {1, 2} for o in command_options):
+            for option in command_options:
+                if option['type'] in {1, 2}:
+                    command_name += f' {option["name"]}'
+                    command_options = option.get('options') or []
 
         command = self.get_command(command_name)
         if command is None:
