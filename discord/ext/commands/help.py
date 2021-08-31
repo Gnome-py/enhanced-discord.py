@@ -615,7 +615,7 @@ class HelpCommand:
         :class:`.abc.Messageable`
             The destination where the help command will be output.
         """
-        return self.context.channel
+        return self.context
 
     async def send_error_message(self, error):
         """|coro|
@@ -977,6 +977,14 @@ class DefaultHelpCommand(HelpCommand):
         for page in self.paginator.pages:
             await destination.send(page)
 
+        interaction = self.context.interaction
+        if (
+            interaction is not None
+            and destination == self.context.author
+            and not interaction.response.is_done()
+        ):
+            await interaction.response.send_message("Sent help to your DMs!", ephemeral=True)
+
     def add_command_formatting(self, command):
         """A utility function to format the non-indented block of commands and groups.
 
@@ -1007,7 +1015,7 @@ class DefaultHelpCommand(HelpCommand):
         elif self.dm_help is None and len(self.paginator) > self.dm_help_threshold:
             return ctx.author
         else:
-            return ctx.channel
+            return ctx
 
     async def prepare_help_command(self, ctx, command):
         self.paginator.clear()

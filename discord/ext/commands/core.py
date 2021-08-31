@@ -23,6 +23,7 @@ DEALINGS IN THE SOFTWARE.
 """
 from __future__ import annotations
 
+
 from typing import (
     Any,
     Callable,
@@ -38,18 +39,21 @@ from typing import (
     TypeVar,
     Type,
     TYPE_CHECKING,
+    cast,
     overload,
 )
 import asyncio
 import functools
 import inspect
 import datetime
+from collections import defaultdict
+from operator import itemgetter
 
 import discord
 
 from .errors import *
 from .cooldowns import Cooldown, BucketType, CooldownMapping, MaxConcurrency, DynamicCooldownMapping
-from .converter import run_converters, get_converter, Greedy
+from .converter import run_converters, get_converter, Greedy, Option
 from ._types import _BaseCommand
 from .cog import Cog
 from .context import Context
@@ -59,6 +63,7 @@ if TYPE_CHECKING:
     from typing_extensions import Concatenate, ParamSpec, TypeGuard
 
     from discord.message import Message
+    from discord.types.interactions import EditApplicationCommand
 
     from ._types import (
         Coro,
@@ -106,6 +111,16 @@ ContextT = TypeVar('ContextT', bound='Context')
 GroupT = TypeVar('GroupT', bound='Group')
 HookT = TypeVar('HookT', bound='Hook')
 ErrorT = TypeVar('ErrorT', bound='Error')
+application_option_type_lookup = {
+    str: 3,
+    bool: 5,
+    int: 4,
+    (discord.Member, discord.User): 6, # Preferably discord.abc.User, but 'Protocols with non-method members don't support issubclass()'
+    (discord.abc.GuildChannel, discord.DMChannel): 7,
+    discord.Role: 8,
+    discord.Object: 9,
+    float: 10
+}
 
 if TYPE_CHECKING:
     P = ParamSpec('P')
@@ -123,13 +138,19 @@ def unwrap_function(function: Callable[..., Any]) -> Callable[..., Any]:
             return function
 
 
-def get_signature_parameters(function: Callable[..., Any], globalns: Dict[str, Any]) -> Dict[str, inspect.Parameter]:
+def get_signature_parameters(function: Callable[..., Any], globalns: Dict[str, Any]) -> Tuple[Dict[str, inspect.Parameter], Dict[str, str]]:
     signature = inspect.signature(function)
     params = {}
     cache: Dict[str, Any] = {}
+    descriptions = defaultdict(lambda: 'no description')
     eval_annotation = discord.utils.evaluate_annotation
     for name, parameter in signature.parameters.items():
         annotation = parameter.annotation
+        if isinstance(parameter.default, Option): # type: ignore
+            option = parameter.default
+            descriptions[name] = option.description
+            parameter = parameter.replace(default=option.default)
+
         if annotation is parameter.empty:
             params[name] = parameter
             continue
@@ -143,7 +164,7 @@ def get_signature_parameters(function: Callable[..., Any], globalns: Dict[str, A
 
         params[name] = parameter.replace(annotation=annotation)
 
-    return params
+    return params, descriptions
 
 
 def wrap_callback(coro):
@@ -269,8 +290,8 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
         which calls converters. If ``False`` then cooldown processing is done
         first and then the converters are called second. Defaults to ``False``.
     extras: :class:`dict`
-        A dict of user provided extras to attach to the Command. 
-        
+        A dict of user provided extras to attach to the Command.
+
         .. note::
             This object may be copied by the library.
 
@@ -309,6 +330,8 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
 
         self.callback = func
         self.enabled: bool = kwargs.get('enabled', True)
+        self.slash_command: Optional[bool] = kwargs.get("slash_command", None)
+        self.normal_command: Optional[bool] = kwargs.get("normal_command", None)
 
         help_doc = kwargs.get('help')
         if help_doc is not None:
@@ -344,7 +367,7 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
             cooldown = func.__commands_cooldown__
         except AttributeError:
             cooldown = kwargs.get('cooldown')
-        
+
         if cooldown is None:
             buckets = CooldownMapping(cooldown, BucketType.default)
         elif isinstance(cooldown, CooldownMapping):
@@ -406,7 +429,7 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
         except AttributeError:
             globalns = {}
 
-        self.params = get_signature_parameters(function, globalns)
+        self.params, self.option_descriptions = get_signature_parameters(function, globalns)
 
     def add_check(self, func: Check) -> None:
         """Adds a check to the command.
@@ -1098,7 +1121,13 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
             A boolean indicating if the command can be invoked.
         """
 
-        if not self.enabled:
+        if not self.enabled or (
+            ctx.interaction is not None
+            and self.slash_command is False
+        ) or (
+            ctx.interaction is None
+            and self.normal_command is False
+        ):
             raise DisabledCommand(f'{self.name} command is disabled')
 
         original = ctx.command
@@ -1124,6 +1153,58 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
             return await discord.utils.async_all(predicate(ctx) for predicate in predicates)  # type: ignore
         finally:
             ctx.command = original
+
+    def to_application_command(self, nested: int = 0) -> Optional[EditApplicationCommand]:
+        if self.slash_command is False:
+            return
+        elif nested == 3:
+            raise ValueError(f"{self.qualified_name} is too deeply nested!")
+
+        payload = {
+            "name": self.name,
+            "description": self.short_doc or "no description",
+            "options": []
+        }
+        if nested != 0:
+            payload["type"] = 1
+
+        for name, param in self.clean_params.items():
+            annotation: Type[Any] = param.annotation if param.annotation is not param.empty else str
+            origin = getattr(param.annotation, "__origin__", None)
+
+            if origin is None and isinstance(annotation, Greedy):
+                annotation = annotation.converter
+                origin = Greedy
+
+            option: Dict[str, Any] = {
+                "name": name,
+                "description": self.option_descriptions[name],
+                "required": param.default is param.empty and not self._is_typing_optional(annotation),
+            }
+
+            annotation = cast(Any, annotation)
+            if not option["required"] and origin is not None and len(annotation.__args__) == 2:
+                # Unpack Optional[T] (Union[T, None]) into just T
+                annotation, origin = annotation.__args__[0], None
+
+            if origin is None:
+                option["type"] = next(
+                    (num for t, num in application_option_type_lookup.items()
+                    if issubclass(annotation, t)), 3
+                )
+            elif origin is Literal and len(origin.__args__) <= 25: # type: ignore
+                option["choices"] = [{
+                    "name": literal_value,
+                    "value": literal_value
+                } for literal_value in origin.__args__] # type: ignore
+            else:
+                option["type"] = 3 # STRING
+
+            payload["options"].append(option)
+
+        # Now we have all options, make sure required is before optional.
+        payload["options"] = sorted(payload["options"], key=itemgetter("required"), reverse=True)
+        return payload # type: ignore
 
 class GroupMixin(Generic[CogT]):
     """A mixin that implements common functionality for classes that behave
@@ -1491,6 +1572,22 @@ class Group(GroupMixin[CogT], Command[CogT, P, T]):
             view.index = previous
             view.previous = previous
             await super().reinvoke(ctx, call_hooks=call_hooks)
+
+    def to_application_command(self, nested: int = 0) -> Optional[EditApplicationCommand]:
+        if self.slash_command is False:
+            return
+        elif nested == 2:
+            raise ValueError(f"{self.qualified_name} is too deeply nested for slash commands!")
+
+        return { # type: ignore
+            "name": self.name,
+            "type": int(not (nested - 1)) + 1,
+            "description": self.short_doc or 'no description',
+            "options": [
+                cmd.to_application_command(nested=nested+1)
+                for cmd in self.commands
+            ]
+        }
 
 # Decorators
 
