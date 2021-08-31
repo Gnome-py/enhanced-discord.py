@@ -77,6 +77,7 @@ __all__ = (
     'GuildStickerConverter',
     'clean_content',
     'Greedy',
+    'Option',
     'run_converters',
 )
 
@@ -95,6 +96,9 @@ T = TypeVar('T')
 T_co = TypeVar('T_co', covariant=True)
 CT = TypeVar('CT', bound=discord.abc.GuildChannel)
 TT = TypeVar('TT', bound=discord.Thread)
+
+NT = TypeVar('NT', bound=str)
+DT = TypeVar('DT', bound=str)
 
 
 @runtime_checkable
@@ -1003,6 +1007,20 @@ class Greedy(List[T]):
             raise TypeError(f'Greedy[{converter!r}] is invalid.')
 
         return cls(converter=converter)
+
+if TYPE_CHECKING:
+    def Option(default: T = inspect.Parameter.empty, *, name: str = None, description: str) -> T: ...
+else:
+    class Option(Generic[T, DT, NT]):
+        description: DT
+        name: Optional[NT]
+        default: Union[T, inspect.Parameter.empty]
+        __slots__ = ('name', 'default', 'description',)
+
+        def __init__(self, default: T = inspect.Parameter.empty, *, name: NT = None, description: DT) -> None:
+            self.description = description
+            self.default = default
+            self.name = name
 
 
 def _convert_to_bool(argument: str) -> bool:

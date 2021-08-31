@@ -39,19 +39,21 @@ from typing import (
     TypeVar,
     Type,
     TYPE_CHECKING,
+    cast,
     overload,
 )
 import asyncio
 import functools
 import inspect
 import datetime
+from collections import defaultdict
 from operator import itemgetter
 
 import discord
 
 from .errors import *
 from .cooldowns import Cooldown, BucketType, CooldownMapping, MaxConcurrency, DynamicCooldownMapping
-from .converter import run_converters, get_converter, Greedy
+from .converter import run_converters, get_converter, Greedy, Option
 from ._types import _BaseCommand
 from .cog import Cog
 from .context import Context
@@ -136,13 +138,19 @@ def unwrap_function(function: Callable[..., Any]) -> Callable[..., Any]:
             return function
 
 
-def get_signature_parameters(function: Callable[..., Any], globalns: Dict[str, Any]) -> Dict[str, inspect.Parameter]:
+def get_signature_parameters(function: Callable[..., Any], globalns: Dict[str, Any]) -> Tuple[Dict[str, inspect.Parameter], Dict[str, str]]:
     signature = inspect.signature(function)
     params = {}
     cache: Dict[str, Any] = {}
+    descriptions = defaultdict(lambda: 'no description')
     eval_annotation = discord.utils.evaluate_annotation
     for name, parameter in signature.parameters.items():
         annotation = parameter.annotation
+        if isinstance(parameter.default, Option): # type: ignore
+            option = parameter.default
+            descriptions[name] = option.description
+            parameter = parameter.replace(default=option.default)
+
         if annotation is parameter.empty:
             params[name] = parameter
             continue
@@ -156,7 +164,7 @@ def get_signature_parameters(function: Callable[..., Any], globalns: Dict[str, A
 
         params[name] = parameter.replace(annotation=annotation)
 
-    return params
+    return params, descriptions
 
 
 def wrap_callback(coro):
@@ -421,7 +429,7 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
         except AttributeError:
             globalns = {}
 
-        self.params = get_signature_parameters(function, globalns)
+        self.params, self.option_descriptions = get_signature_parameters(function, globalns)
 
     def add_check(self, func: Check) -> None:
         """Adds a check to the command.
@@ -1160,7 +1168,6 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
         if nested != 0:
             payload["type"] = 1
 
-        option_descriptions = self.extras.get("option_descriptions", {})
         for name, param in self.clean_params.items():
             annotation: Type[Any] = param.annotation if param.annotation is not param.empty else str
             origin = getattr(param.annotation, "__origin__", None)
@@ -1171,10 +1178,11 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
 
             option: Dict[str, Any] = {
                 "name": name,
-                "required": not self._is_typing_optional(annotation),
-                "description": option_descriptions.get(name, "no description"),
+                "description": self.option_descriptions[name],
+                "required": param.default is param.empty and not self._is_typing_optional(annotation),
             }
 
+            annotation = cast(Any, annotation)
             if not option["required"] and origin is not None and len(annotation.__args__) == 2:
                 # Unpack Optional[T] (Union[T, None]) into just T
                 annotation, origin = annotation.__args__[0], None
@@ -1182,7 +1190,7 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
             if origin is None:
                 option["type"] = next(
                     (num for t, num in application_option_type_lookup.items()
-                    if issubclass(annotation, t)), str
+                    if issubclass(annotation, t)), 3
                 )
             elif origin is Literal and len(origin.__args__) <= 25: # type: ignore
                 option["choices"] = [{

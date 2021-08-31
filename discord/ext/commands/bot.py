@@ -1105,7 +1105,7 @@ class BotBase(GroupMixin):
             option = next((o for o in command_options if o['name'] == name), None) # type: ignore
 
             if option is None:
-                if not command._is_typing_optional(param.annotation):
+                if param.default is param.empty and not command._is_typing_optional(param.annotation):
                     raise errors.MissingRequiredArgument(param)
             elif (
                 option["type"] == 3
