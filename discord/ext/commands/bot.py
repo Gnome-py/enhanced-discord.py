@@ -74,7 +74,7 @@ CXT = TypeVar('CXT', bound='Context')
 
 class _FakeSlashMessage(discord.PartialMessage):
     activity = application = edited_at = reference = webhook_id = None
-    attachments = components = reactions = stickers = []
+    attachments = components = reactions = stickers = mentions = []
     author: Union[discord.User, discord.Member]
     tts = False
 
@@ -1066,7 +1066,6 @@ class BotBase(GroupMixin):
             return
 
         assert interaction.user is not None
-
         interaction.data = cast(ApplicationCommandInteractionData, interaction.data)
 
         # Ensure the interaction channel is usable
@@ -1105,7 +1104,6 @@ class BotBase(GroupMixin):
         message.content = f'{prefix}{command_name} '
         for name, param in command.clean_params.items():
             option = next((o for o in command_options if o['name'] == name), None) # type: ignore
-            print(name, param, option)
 
             if option is None:
                 if not command._is_typing_optional(param.annotation):
@@ -1224,7 +1222,7 @@ class Bot(BotBase, discord.Client):
             return
 
         application = self.application_id or (await self.application_info()).id
-        commands = [scmd for cmd in self.commands if (scmd := cmd.to_application_command()) is not None]
+        commands = [scmd for cmd in self.commands if not cmd.hidden and (scmd := cmd.to_application_command()) is not None]
 
         await self.http.bulk_upsert_guild_commands(application, self.slash_command_guild, payload=commands)
 
