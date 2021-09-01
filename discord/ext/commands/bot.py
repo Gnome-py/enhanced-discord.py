@@ -1228,6 +1228,20 @@ class Bot(BotBase, discord.Client):
         the ``command_prefix`` is set to ``!``. Defaults to ``False``.
 
         .. versionadded:: 1.7
+    message_commands: Optional[:class:`bool`]
+        Whether to process commands based on messages.
+
+        Can be overwritten per command in the command decorators or when making
+        a :class:`Command` object via the ``message_command`` parameter
+
+        .. versionadded:: 2.0
+    slash_commands: Optional[:class:`bool`]
+        Whether to upload and process slash commands.
+
+        Can be overwritten per command in the command decorators or when making
+        a :class:`Command` object via the ``slash_command`` parameter
+
+        .. versionadded:: 2.0
     """
     async def setup(self):
         if not self.slash_commands:

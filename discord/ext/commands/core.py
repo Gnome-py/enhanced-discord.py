@@ -292,11 +292,25 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
     extras: :class:`dict`
         A dict of user provided extras to attach to the Command.
 
+        .. versionadded:: 2.0
+
         .. note::
             This object may be copied by the library.
 
+    message_command: Optional[:class:`bool`]
+        Whether to process this command based on messages.
+
+        This overwrites the global ``message_commands`` parameter of :class:`.Bot`.
 
         .. versionadded:: 2.0
+
+    slash_command: Optional[:class:`bool`]
+        Whether to upload and process this command as a slash command.
+
+        This overwrites the global ``slash_commands`` parameter of :class:`.Bot`.
+
+        .. versionadded:: 2.0
+
     """
     __original_kwargs__: Dict[str, Any]
 

@@ -43,7 +43,7 @@ Breaking Changes
 - :attr:`GroupChannel.owner` is now Optional
 - ``edit`` methods now only accept None if it actually means something (e.g. clearing it)
 - ``timeout`` parameter for ``ui.View.__init__`` is now keyword only
-- When an interaction has already been responded and another one is sent, :exc:`InteractionResponded`is now raised.
+- When an interaction has already been responded and another one is sent, :exc:`InteractionResponded` is now raised.
     - Discord's API only allows a single :attr:`interaction.response`.
 - Separate :func:`on_member_update` and :func:`on_presence_update`
     - The new event :func:`on_presence_update` is now called when status/activity is changed.
