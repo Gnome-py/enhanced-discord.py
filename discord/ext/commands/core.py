@@ -30,6 +30,7 @@ from typing import (
     Dict,
     Generator,
     Generic,
+    Iterable,
     Literal,
     List,
     Optional,
@@ -296,21 +297,24 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
 
         .. note::
             This object may be copied by the library.
-
     message_command: Optional[:class:`bool`]
         Whether to process this command based on messages.
 
         This overwrites the global ``message_commands`` parameter of :class:`.Bot`.
 
         .. versionadded:: 2.0
-
     slash_command: Optional[:class:`bool`]
         Whether to upload and process this command as a slash command.
 
         This overwrites the global ``slash_commands`` parameter of :class:`.Bot`.
 
         .. versionadded:: 2.0
+    slash_command_guilds: Optional[:class:`List[int]`]
+        If this is set, only upload this slash command to these guild IDs.
 
+        This overwrites the global ``slash_command_guilds`` parameter of :class:`.Bot`.
+
+        .. versionadded:: 2.0
     """
     __original_kwargs__: Dict[str, Any]
 
@@ -344,8 +348,10 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
 
         self.callback = func
         self.enabled: bool = kwargs.get('enabled', True)
+
         self.slash_command: Optional[bool] = kwargs.get("slash_command", None)
         self.message_command: Optional[bool] = kwargs.get("message_command", None)
+        self.slash_command_guilds: Optional[Iterable[int]] = kwargs.get("slash_command_guilds", None)
 
         help_doc = kwargs.get('help')
         if help_doc is not None:
@@ -405,6 +411,8 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
         # bandaid for the fact that sometimes parent can be the bot instance
         parent = kwargs.get('parent')
         self.parent: Optional[GroupMixin] = parent if isinstance(parent, _BaseCommand) else None  # type: ignore
+        if self.slash_command_guilds is not None and self.parent is not None:
+            raise TypeError("Cannot set specific guilds for a subcommand. They are inherited from the top level group.")
 
         self._before_invoke: Optional[Hook] = None
         try:

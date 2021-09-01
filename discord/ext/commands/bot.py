@@ -35,11 +35,13 @@ import importlib.util
 import sys
 import traceback
 import types
-from typing import Any, Callable, cast, Mapping, List, Dict, TYPE_CHECKING, Optional, TypeVar, Type, Union
+from collections import defaultdict
+from typing import Any, Callable, Iterable, cast, Mapping, List, Dict, TYPE_CHECKING, Optional, TypeVar, Type, Union
 
 import discord
 from discord.types.interactions import (
     ApplicationCommandInteractionData,
+    EditApplicationCommand,
     _ApplicationCommandInteractionDataOptionString
 )
 
@@ -174,7 +176,7 @@ class BotBase(GroupMixin):
         if not (message_commands or slash_commands):
             raise TypeError("Both message_commands and slash_commands are disabled.")
         elif slash_commands:
-            self.slash_command_guild = options.get('slash_command_guild', None)
+            self.slash_command_guilds: Optional[Iterable[int]] = options.get('slash_command_guilds', None)
 
         if help_command is _default:
             self.help_command = DefaultHelpCommand()
@@ -192,12 +194,44 @@ class BotBase(GroupMixin):
             self._schedule_event(event, ev, *args, **kwargs)  # type: ignore
 
     async def _create_application_commands(self, application_id: int, http: HTTPClient):
-        commands = [scmd for cmd in self.commands if not cmd.hidden and (scmd := cmd.to_application_command()) is not None]
+        commands: defaultdict[Optional[int], List[EditApplicationCommand]] = defaultdict(list)
+        for command in self.commands:
+            if command.hidden:
+                continue
 
-        if self.slash_command_guild is None:
-            await http.bulk_upsert_global_commands(application_id, payload=commands)
-        else:
-            await http.bulk_upsert_guild_commands(application_id, self.slash_command_guild, payload=commands)
+            payload = command.to_application_command()
+            if payload is None:
+                continue
+
+            guilds = command.slash_command_guilds or self.slash_command_guilds
+            if guilds is None:
+                commands[None].append(payload)
+            else:
+                for guild in guilds:
+                    commands[guild].append(payload)
+
+        global_commands = commands.pop(None, None)
+        if global_commands is not None:
+            if self.slash_command_guilds is None:
+                await http.bulk_upsert_global_commands(
+                    payload=global_commands,
+                    application_id=application_id,
+                )
+            else:
+                for guild in self.slash_command_guilds:
+                    await http.bulk_upsert_guild_commands(
+                        guild_id=guild,
+                        payload=global_commands,
+                        application_id=application_id,
+                    )
+
+        for guild, guild_commands in commands.items():
+            assert guild is not None
+            await http.bulk_upsert_guild_commands(
+                guild_id=guild,
+                payload=guild_commands,
+                application_id=application_id,
+            )
 
 
     @discord.utils.copy_doc(discord.Client.close)
@@ -1242,6 +1276,14 @@ class Bot(BotBase, discord.Client):
         a :class:`Command` object via the ``slash_command`` parameter
 
         .. versionadded:: 2.0
+    slash_command_guilds: Optional[:class:`List[int]`]
+        If this is set, only upload slash commands to these guild IDs.
+
+        Can be overwritten per command in the command decorators or when making
+        a :class:`Command` object via the ``slash_command_guilds`` parameter
+
+        .. versionadded:: 2.0
+
     """
     async def setup(self):
         if not self.slash_commands:
