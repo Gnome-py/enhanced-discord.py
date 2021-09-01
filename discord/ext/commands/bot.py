@@ -79,6 +79,13 @@ class _FakeSlashMessage(discord.PartialMessage):
     author: Union[discord.User, discord.Member]
     tts = False
 
+    @classmethod
+    def from_interaction(cls, interaction: discord.Interaction) -> discord.Message:
+        self: discord.Message = cls(channel=interaction.channel, id=interaction.id) # type: ignore
+
+        assert interaction.user is not None
+        self.author = interaction.user
+        return self
 
 def when_mentioned(bot: Union[Bot, AutoShardedBot], msg: Message) -> List[str]:
     """A callable that implements a command prefix equivalent to being mentioned.
@@ -1088,6 +1095,9 @@ class BotBase(GroupMixin):
             else:
                 return # cannot do anything without stable channel
 
+            interaction.channel = channel # type: ignore
+        del channel
+
         # Fetch out subcommands from the options
         command_name = interaction.data['name']
         command_options = interaction.data.get('options') or []
@@ -1101,10 +1111,8 @@ class BotBase(GroupMixin):
         if command is None:
             raise errors.CommandNotFound(f'Command "{command_name}" is not found')
 
-        message: discord.Message = _FakeSlashMessage(id=interaction.id, channel=channel) # type: ignore
-        message.author = interaction.user
-
         # Fetch a valid prefix, so process_commands can function
+        message = _FakeSlashMessage.from_interaction(interaction)
         prefix = await self.get_prefix(message)
         if isinstance(prefix, list):
             prefix = prefix[0]
