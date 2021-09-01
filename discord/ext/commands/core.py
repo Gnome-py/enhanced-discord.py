@@ -331,7 +331,7 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
         self.callback = func
         self.enabled: bool = kwargs.get('enabled', True)
         self.slash_command: Optional[bool] = kwargs.get("slash_command", None)
-        self.normal_command: Optional[bool] = kwargs.get("normal_command", None)
+        self.message_command: Optional[bool] = kwargs.get("message_command", None)
 
         help_doc = kwargs.get('help')
         if help_doc is not None:
@@ -1126,7 +1126,7 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
             and self.slash_command is False
         ) or (
             ctx.interaction is None
-            and self.normal_command is False
+            and self.message_command is False
         ):
             raise DisabledCommand(f'{self.name} command is disabled')
 
