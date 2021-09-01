@@ -97,7 +97,6 @@ T_co = TypeVar('T_co', covariant=True)
 CT = TypeVar('CT', bound=discord.abc.GuildChannel)
 TT = TypeVar('TT', bound=discord.Thread)
 
-NT = TypeVar('NT', bound=str)
 DT = TypeVar('DT', bound=str)
 
 
@@ -1009,19 +1008,16 @@ class Greedy(List[T]):
         return cls(converter=converter)
 
 if TYPE_CHECKING:
-    def Option(default: T = inspect.Parameter.empty, *, name: str = None, description: str) -> T: ...
+    def Option(default: T = inspect.Parameter.empty, *, description: str) -> T: ...
 else:
-    class Option(Generic[T, DT, NT]):
+    class Option(Generic[T, DT]):
         description: DT
-        name: Optional[NT]
         default: Union[T, inspect.Parameter.empty]
-        __slots__ = ('name', 'default', 'description',)
+        __slots__ = ('default', 'description',)
 
-        def __init__(self, default: T = inspect.Parameter.empty, *, name: NT = None, description: DT) -> None:
+        def __init__(self, default: T = inspect.Parameter.empty, *, description: DT) -> None:
             self.description = description
             self.default = default
-            self.name = name
-
 
 def _convert_to_bool(argument: str) -> bool:
     lowered = argument.lower()
