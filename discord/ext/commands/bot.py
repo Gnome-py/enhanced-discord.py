@@ -146,11 +146,13 @@ class BotBase(GroupMixin):
     def __init__(self,
         command_prefix,
         help_command=_default,
-        description=None,
+        description=None, *,
+        intents: discord.Intents,
         message_commands: bool = True,
         slash_commands: bool = False, **options
     ):
-        super().__init__(**options)
+        super().__init__(**options, intents=intents)
+
         self.command_prefix = command_prefix
         self.slash_commands = slash_commands
         self.message_commands = message_commands
