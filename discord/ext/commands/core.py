@@ -1211,10 +1211,12 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
                 annotation, origin = annotation.__args__[0], None
 
             if origin is None:
-                option["type"] = next(
-                    (num for t, num in application_option_type_lookup.items()
-                    if issubclass(annotation, t)), 3
-                )
+                generator = (num for t, num in application_option_type_lookup.items() if issubclass(annotation, t))
+                try:
+                    option["type"] = next(generator, 3)
+                except Exception as err:
+                    raise ApplicationCommandRegistrationError(self)
+
             elif origin is Literal and len(origin.__args__) <= 25: # type: ignore
                 option["choices"] = [{
                     "name": literal_value,

@@ -1130,8 +1130,6 @@ class BotBase(GroupMixin):
         command = self.get_command(command_name)
         if command is None:
             raise errors.CommandNotFound(f'Command "{command_name}" is not found')
-        elif not command.slash_command:
-            return
 
         # Ensure the interaction channel is usable
         channel = interaction.channel

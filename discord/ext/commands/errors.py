@@ -33,6 +33,7 @@ if TYPE_CHECKING:
 
     from .converter import Converter
     from .context import Context
+    from .core import Command
     from .cooldowns import Cooldown, BucketType
     from .flags import Flag
     from discord.abc import GuildChannel
@@ -93,6 +94,7 @@ __all__ = (
     'ExtensionFailed',
     'ExtensionNotFound',
     'CommandRegistrationError',
+    'ApplicationCommandRegistrationError',
     'FlagError',
     'BadFlagArgument',
     'MissingFlagArgument',
@@ -914,6 +916,23 @@ class CommandRegistrationError(ClientException):
         self.alias_conflict: bool = alias_conflict
         type_ = 'alias' if alias_conflict else 'command'
         super().__init__(f'The {type_} {name} is already an existing command or alias.')
+
+class ApplicationCommandRegistrationError(ClientException):
+    """An exception raised when a command cannot be converted to an
+    application command.
+
+    This inherits from :exc:`discord.ClientException`
+
+    .. versionadded:: 2.0
+
+    Attributes
+    ----------
+    command: :class:`Command`
+        The command that failed to be converted.
+    """
+    def __init__(self, command: Command) -> None:
+        self.command = command
+        super().__init__(f"{command.qualified_name} failed to converted to an application command.")
 
 class FlagError(BadArgument):
     """The base exception type for all flag parsing related errors.
