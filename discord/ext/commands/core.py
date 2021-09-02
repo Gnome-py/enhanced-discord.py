@@ -1144,16 +1144,20 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
         :class:`bool`
             A boolean indicating if the command can be invoked.
         """
-        if not self.enabled or (
-            ctx.interaction is None and (
-                self.message_command is False
-                or (self.message_command is None and not ctx.bot.message_commands)
-            ) or (
-                self.slash_command is False
-                or (self.slash_command is None and not ctx.bot.slash_commands)
-            )
-        ):
+        if not self.enabled:
             raise DisabledCommand(f'{self.name} command is disabled')
+
+        if ctx.interaction is None and (
+            self.message_command is False
+            or (self.message_command is None and not ctx.bot.message_commands)
+        ):
+            raise DisabledCommand(f'{self.name} command cannot be run as a message command')
+
+        if ctx.interaction is not None and (
+            self.slash_command is False
+            or (self.slash_command is None and not ctx.bot.slash_commands)
+        ):
+            raise DisabledCommand(f'{self.name} command cannot be run as a slash command')
 
         original = ctx.command
         ctx.command = self
