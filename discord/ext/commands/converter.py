@@ -1011,6 +1011,17 @@ if TYPE_CHECKING:
     def Option(default: T = inspect.Parameter.empty, *, description: str) -> T: ...
 else:
     class Option(Generic[T, DT]):
+        """
+        Represents a command parameter
+        
+        Parameters
+        -----------
+        
+        description: :class:`str`
+            The description shown on the slash command ui
+        default: Optional[Any]
+            The default value for the option
+        """
         description: DT
         default: Union[T, inspect.Parameter.empty]
         __slots__ = ('default', 'description',)
