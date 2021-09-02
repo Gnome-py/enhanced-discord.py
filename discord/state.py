@@ -152,6 +152,7 @@ class ConnectionState:
         handlers: Dict[str, Callable],
         hooks: Dict[str, Callable],
         http: HTTPClient,
+        intents: Intents,
         loop: asyncio.AbstractEventLoop,
         **options: Any,
     ) -> None:
@@ -194,12 +195,8 @@ class ConnectionState:
             else:
                 status = str(status)
 
-        intents = options.get('intents', None)
-        if intents is not None:
-            if not isinstance(intents, Intents):
-                raise TypeError(f'intents parameter must be Intent not {type(intents)!r}')
-        else:
-            intents = Intents.default()
+        if not isinstance(intents, Intents):
+            raise TypeError(f'intents parameter must be Intent not {type(intents)!r}')
 
         if not intents.guilds:
             _log.warning('Guilds intent seems to be disabled. This may cause state related issues.')

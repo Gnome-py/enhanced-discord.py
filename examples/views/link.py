@@ -5,7 +5,10 @@ from urllib.parse import quote_plus
 
 class GoogleBot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix=commands.when_mentioned_or('$'))
+        super().__init__(
+            command_prefix=commands.when_mentioned_or('$'),
+            intents=discord.Intents(guilds=True, messages=True)
+        )
 
     async def on_ready(self):
         print(f'Logged in as {self.user} (ID: {self.user.id})')
@@ -36,4 +39,4 @@ async def google(ctx: commands.Context, *, query: str):
     await ctx.send(f'Google Result for: `{query}`', view=Google(query))
 
 
-bot.run('token')
+bot.run()

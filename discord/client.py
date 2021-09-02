@@ -142,7 +142,6 @@ class Client:
     intents: :class:`Intents`
         The intents that you want to enable for the session. This is a way of
         disabling and enabling certain gateway events from triggering and being sent.
-        If not given, defaults to a regularly constructed :class:`Intents` class.
 
         .. versionadded:: 1.5
     member_cache_flags: :class:`MemberCacheFlags`
@@ -203,9 +202,12 @@ class Client:
     def __init__(
         self,
         *,
+        intents: Intents,
         loop: Optional[asyncio.AbstractEventLoop] = None,
         **options: Any,
     ):
+        options["intents"] = intents
+
         # self.ws is set in the connect method
         self.ws: DiscordWebSocket = None  # type: ignore
         self.loop: asyncio.AbstractEventLoop = asyncio.get_event_loop() if loop is None else loop

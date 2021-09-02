@@ -13,5 +13,5 @@ class MyClient(discord.Client):
         if message.content.startswith('!hello'):
             await message.reply('Hello!', mention_author=True)
 
-client = MyClient()
+client = MyClient(intents=discord.Intents(guilds=True, messages=True))
 client.run('token')

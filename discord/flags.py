@@ -480,16 +480,6 @@ class Intents(BaseFlags):
         self.value = self.DEFAULT_VALUE
         return self
 
-    @classmethod
-    def default(cls: Type[Intents]) -> Intents:
-        """A factory method that creates a :class:`Intents` with everything enabled
-        except :attr:`presences` and :attr:`members`.
-        """
-        self = cls.all()
-        self.presences = False
-        self.members = False
-        return self
-
     @flag_value
     def guilds(self):
         """:class:`bool`: Whether guild related events are enabled.

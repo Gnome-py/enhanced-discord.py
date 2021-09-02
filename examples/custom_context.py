@@ -29,7 +29,7 @@ class MyBot(commands.Bot):
         return await super().get_context(message, cls=cls)
 
 
-bot = MyBot(command_prefix='!')
+bot = MyBot(command_prefix='!', intents=discord.Intents(guilds=True, messages=True))
 
 @bot.command()
 async def guess(ctx, number: int):

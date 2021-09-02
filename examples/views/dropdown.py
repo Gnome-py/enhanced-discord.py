@@ -1,5 +1,3 @@
-import typing
-
 import discord
 from discord.ext import commands
 
@@ -39,7 +37,10 @@ class DropdownView(discord.ui.View):
 
 class Bot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix=commands.when_mentioned_or('$'))
+        super().__init__(
+            command_prefix=commands.when_mentioned_or('$'),
+            intents=discord.Intents(guilds=True, messages=True)
+        )
 
     async def on_ready(self):
         print(f'Logged in as {self.user} (ID: {self.user.id})')

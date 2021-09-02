@@ -9,10 +9,8 @@ module.
 
 There are a number of utility commands being showcased here.'''
 
-intents = discord.Intents.default()
-intents.members = True
-
-bot = commands.Bot(command_prefix='?', description=description, intents=intents)
+intents = discord.Intents(guilds=True, messages=True, members=True)
+bot = commands.Bot(command_prefix='t-', description=description, intents=intents)
 
 @bot.event
 async def on_ready():

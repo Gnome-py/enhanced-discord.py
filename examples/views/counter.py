@@ -5,7 +5,10 @@ import discord
 
 class CounterBot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix=commands.when_mentioned_or('$'))
+        super().__init__(
+            command_prefix=commands.when_mentioned_or('$'),
+            intents=discord.Intents(guilds=True, messages=True)
+        )
 
     async def on_ready(self):
         print(f'Logged in as {self.user} (ID: {self.user.id})')

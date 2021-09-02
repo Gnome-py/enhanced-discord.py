@@ -3,7 +3,11 @@ import typing
 import discord
 from discord.ext import commands
 
-bot = commands.Bot(command_prefix=commands.when_mentioned, description="Nothing to see here!")
+bot = commands.Bot(
+    command_prefix=commands.when_mentioned,
+    description="Nothing to see here!",
+    intents=discord.Intents(guilds=True, messages=True)
+)
 
 # the `hidden` keyword argument hides it from the help command.
 @bot.group(hidden=True)

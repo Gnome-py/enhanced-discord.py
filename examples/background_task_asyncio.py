@@ -22,5 +22,5 @@ class MyClient(discord.Client):
             await asyncio.sleep(60) # task runs every 60 seconds
 
 
-client = MyClient()
+client = MyClient(intents=discord.Intents(guilds=True))
 client.run('token')

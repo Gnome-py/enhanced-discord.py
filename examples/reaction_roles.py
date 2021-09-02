@@ -78,8 +78,6 @@ class MyClient(discord.Client):
             # If we want to do something in case of errors we'd do it here.
             pass
 
-intents = discord.Intents.default()
-intents.members = True
-
+intents = discord.Intents(guilds=True, members=True, guild_reactions=True)
 client = MyClient(intents=intents)
 client.run('token')

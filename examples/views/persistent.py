@@ -29,7 +29,11 @@ class PersistentView(discord.ui.View):
 
 class PersistentViewBot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix=commands.when_mentioned_or('$'))
+        super().__init__(
+            command_prefix=commands.when_mentioned_or('$'),
+            intents=discord.Intents(guilds=True, messages=True)
+        )
+
         self.persistent_views_added = False
 
     async def on_ready(self):
