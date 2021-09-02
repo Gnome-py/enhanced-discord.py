@@ -181,6 +181,7 @@ class BotBase(GroupMixin):
         self.owner_id = options.get('owner_id')
         self.owner_ids = options.get('owner_ids', set())
         self.strip_after_prefix = options.get('strip_after_prefix', False)
+        self.slash_command_guilds: Optional[Iterable[int]] = options.get('slash_command_guilds', None)
 
         if self.owner_id and self.owner_ids:
             raise TypeError('Both owner_id and owner_ids are set.')
@@ -190,8 +191,6 @@ class BotBase(GroupMixin):
 
         if not (message_commands or slash_commands):
             raise TypeError("Both message_commands and slash_commands are disabled.")
-        elif slash_commands:
-            self.slash_command_guilds: Optional[Iterable[int]] = options.get('slash_command_guilds', None)
 
         if help_command is _default:
             self.help_command = DefaultHelpCommand()
@@ -211,7 +210,7 @@ class BotBase(GroupMixin):
     async def _create_application_commands(self, application_id: int, http: HTTPClient):
         commands: defaultdict[Optional[int], List[EditApplicationCommand]] = defaultdict(list)
         for command in self.commands:
-            if command.hidden:
+            if command.hidden or (command.slash_command is None and not self.slash_commands):
                 continue
 
             payload = command.to_application_command()
@@ -1196,12 +1195,10 @@ class BotBase(GroupMixin):
 
 
     async def on_message(self, message):
-        if self.message_commands:
-            await self.process_commands(message)
+        await self.process_commands(message)
 
     async def on_interaction(self, interaction: discord.Interaction):
-        if self.slash_commands and interaction.type == discord.InteractionType.application_command:
-            await self.process_slash_commands(interaction)
+        await self.process_slash_commands(interaction)
 
 
 class Bot(BotBase, discord.Client):
@@ -1297,9 +1294,6 @@ class Bot(BotBase, discord.Client):
 
     """
     async def setup(self):
-        if not self.slash_commands:
-            return
-
         application = self.application_id or (await self.application_info()).id
         await self._create_application_commands(application, self.http)
 
@@ -1308,8 +1302,5 @@ class AutoShardedBot(BotBase, discord.AutoShardedClient):
     :class:`discord.AutoShardedClient` instead.
     """
     async def setup(self):
-        if not self.slash_commands:
-            return
-
         application = self.application_id or (await self.application_info()).id
         await self._create_application_commands(application, self.http)
