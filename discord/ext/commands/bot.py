@@ -46,7 +46,7 @@ from discord.types.interactions import (
     _ApplicationCommandInteractionDataOptionString
 )
 
-from .core import Command, GroupMixin
+from .core import GroupMixin
 from .converter import Greedy
 from .view import StringView, supported_quotes
 from .context import Context
@@ -213,7 +213,11 @@ class BotBase(GroupMixin):
             if command.hidden or (command.slash_command is None and not self.slash_commands):
                 continue
 
-            payload = command.to_application_command()
+            try:
+                payload = command.to_application_command()
+            except Exception:
+                raise errors.ApplicationCommandRegistrationError(command)
+
             if payload is None:
                 continue
 

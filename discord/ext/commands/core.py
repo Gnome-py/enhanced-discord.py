@@ -54,7 +54,7 @@ import discord
 
 from .errors import *
 from .cooldowns import Cooldown, BucketType, CooldownMapping, MaxConcurrency, DynamicCooldownMapping
-from .converter import run_converters, get_converter, Greedy, Option
+from .converter import CONVERTER_MAPPING, Converter, run_converters, get_converter, Greedy, Option
 from ._types import _BaseCommand
 from .cog import Cog
 from .context import Context
@@ -112,6 +112,8 @@ ContextT = TypeVar('ContextT', bound='Context')
 GroupT = TypeVar('GroupT', bound='Group')
 HookT = TypeVar('HookT', bound='Hook')
 ErrorT = TypeVar('ErrorT', bound='Error')
+
+REVERSED_CONVERTER_MAPPING = {v: k for k, v in CONVERTER_MAPPING.items()}
 application_option_type_lookup = {
     str: 3,
     bool: 5,
@@ -1211,11 +1213,19 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
                 annotation, origin = annotation.__args__[0], None
 
             if origin is None:
-                generator = (num for t, num in application_option_type_lookup.items() if issubclass(annotation, t))
-                try:
-                    option["type"] = next(generator, 3)
-                except Exception as err:
-                    raise ApplicationCommandRegistrationError(self)
+                if not inspect.isclass(annotation):
+                    annotation = type(annotation)
+
+                if issubclass(annotation, Converter):
+                    # If this is a converter, we want to check if it is a native
+                    # one, in which we can get the original type, eg, (MemberConverter -> Member)
+                    annotation = REVERSED_CONVERTER_MAPPING.get(annotation, annotation)
+
+                option["type"] = 3
+                for python_type, discord_type in application_option_type_lookup.items():
+                    if issubclass(annotation, python_type):
+                        option["type"] = discord_type
+                        break
 
             elif origin is Literal and len(origin.__args__) <= 25: # type: ignore
                 option["choices"] = [{
