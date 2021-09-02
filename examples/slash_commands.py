@@ -5,7 +5,7 @@ from discord.ext import commands
 # if your bot is only for a couple of servers, you can use the parameter
 # `slash_command_guilds=[list, of, guild, ids]` to specify this,
 # then the commands will be much faster to upload.
-bot = commands.Bot("!", intents=discord.Intents(guilds=True, messages=True), slash_commands=True, slash_command_guilds=[514232441498763279])
+bot = commands.Bot("!", intents=discord.Intents(guilds=True, messages=True), slash_commands=True)
 
 @bot.event
 async def on_ready():
@@ -32,4 +32,4 @@ async def only_message(ctx: commands.Context):
     # This command can only be used with a message
     await ctx.send("Hello from message commands!")
 
-bot.run("NjA1NDM2ODYyNjAxMTAxMzIz.XT8fBA.MCwQg6Bz_TuQ4oktliXHdGczCDY")
+bot.run("token")
