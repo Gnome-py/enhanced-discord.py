@@ -615,6 +615,8 @@ class Client:
 
         To perform asynchronous setup after the bot is logged in but before
         it has connected to the Websocket, overwrite this coroutine.
+
+        .. versionadded:: 2.0
         """
         pass
 
@@ -706,7 +708,7 @@ class Client:
         """:class:`.Status`:
         The status being used upon logging on to Discord.
 
-        .. versionadded: 2.0
+        .. versionadded:: 2.0
         """
         if self._connection._status in set(state.value for state in Status):
             return Status(self._connection._status)

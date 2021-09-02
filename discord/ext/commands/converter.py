@@ -586,7 +586,7 @@ class ThreadConverter(IDConverter[discord.Thread]):
     2. Lookup by mention.
     3. Lookup by name.
 
-    .. versionadded: 2.0
+    .. versionadded:: 2.0
     """
 
     async def convert(self, ctx: Context, argument: str) -> discord.Thread:

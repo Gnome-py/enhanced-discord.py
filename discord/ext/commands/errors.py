@@ -930,9 +930,9 @@ class ApplicationCommandRegistrationError(ClientException):
     command: :class:`Command`
         The command that failed to be converted.
     """
-    def __init__(self, command: Command) -> None:
+    def __init__(self, command: Command, msg: str = None) -> None:
         self.command = command
-        super().__init__(f"{command.qualified_name} failed to converted to an application command.")
+        super().__init__(msg or f"{command.qualified_name} failed to converted to an application command.")
 
 class FlagError(BadArgument):
     """The base exception type for all flag parsing related errors.

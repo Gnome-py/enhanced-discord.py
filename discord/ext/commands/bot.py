@@ -1128,6 +1128,24 @@ class BotBase(GroupMixin):
 
 
     async def process_slash_commands(self, interaction: discord.Interaction):
+        """|coro|
+
+        This function processes a slash command interaction into a usable
+        message and calls :meth:`.process_commands` based on it. Without this
+        coroutine slash commands will not be triggered.
+
+        By default, this coroutine is called inside the :func:`.on_interaction`
+        event. If you choose to override the :func:`.on_interaction` event,
+        then you should invoke this coroutine as well.
+
+        .. versionadded:: 2.0
+
+        Parameters
+        -----------
+        interaction: :class:`discord.Interaction`
+            The interaction to process slash commands for.
+
+        """
         interaction.data = cast(ApplicationCommandInteractionData, interaction.data)
         command_name, command_options = _unwrap_slash_groups(interaction.data)
 
@@ -1164,7 +1182,6 @@ class BotBase(GroupMixin):
                     raise errors.MissingRequiredArgument(param)
             elif (
                 option["type"] == 3
-                and " " in option["value"] # type: ignore
                 and param.kind != param.KEYWORD_ONLY
                 and not isinstance(param.annotation, Greedy)
             ):

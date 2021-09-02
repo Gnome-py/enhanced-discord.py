@@ -1187,7 +1187,7 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
         if self.slash_command is False:
             return
         elif nested == 3:
-            raise ValueError(f"{self.qualified_name} is too deeply nested!")
+            raise ApplicationCommandRegistrationError(self, f"{self.qualified_name} is too deeply nested!")
 
         payload = {
             "name": self.name,
@@ -1208,7 +1208,7 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
             option: Dict[str, Any] = {
                 "name": name,
                 "description": self.option_descriptions[name],
-                "required": param.default is param.empty and not self._is_typing_optional(annotation),
+                "required": (param.default is param.empty and not self._is_typing_optional(annotation)) or param.kind == param.VAR_POSITIONAL,
             }
 
             annotation = cast(Any, annotation)
@@ -1616,7 +1616,7 @@ class Group(GroupMixin[CogT], Command[CogT, P, T]):
         if self.slash_command is False:
             return
         elif nested == 2:
-            raise ValueError(f"{self.qualified_name} is too deeply nested for slash commands!")
+            raise ApplicationCommandRegistrationError(self, f"{self.qualified_name} is too deeply nested!")
 
         return { # type: ignore
             "name": self.name,
