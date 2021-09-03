@@ -61,6 +61,13 @@ the name to something other than the function would be as simple as doing this:
     async def _list(ctx, arg):
         pass
 
+Slash Commands
+--------------
+Slash Commands can be enabled in the :class:`.Bot` constructor or :class:`.Command` constructor, using
+``slash_commands=True`` or ``slash_command=True`` respectfully. All features of the commands extension
+should work with these options enabled, however many will not have direct discord counterparts and therefore
+will be subsituted for supported versions when uploaded to discord.
+
 Parameters
 ------------
 
@@ -178,6 +185,11 @@ know how the command was executed. It contains a lot of useful information:
 
 The context implements the :class:`abc.Messageable` interface, so anything you can do on a :class:`abc.Messageable` you
 can do on the :class:`~ext.commands.Context`.
+
+.. warning::
+    :attr:`.Context.message` will be fake if in a slash command, it is not recommended to use this attribute
+    if :attr:`.Context.interaction` is not None. Currently this will emit a warning and fail silently, however
+    this behaviour may be changed in the future.
 
 Converters
 ------------
