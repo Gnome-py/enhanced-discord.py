@@ -1231,14 +1231,19 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
                         option["type"] = discord_type
                         break
 
-            elif origin is Literal and len(origin.__args__) <= 25: # type: ignore
-                option["choices"] = [{
-                    "name": literal_value,
-                    "value": literal_value
-                } for literal_value in origin.__args__] # type: ignore
-            else:
-                option["type"] = 3 # STRING
+            elif origin is Literal:
+                literal_values = annotation.__args__
+                python_type = type(literal_values[0])
+                if (all(type(value) == python_type for value in literal_values)
+                    and python_type in application_option_type_lookup.keys()):
 
+                    option["type"] = application_option_type_lookup[python_type]
+                    option["choices"] = [{
+                        "name": literal_value,
+                        "value": literal_value
+                    } for literal_value in annotation.__args__]
+
+            option.setdefault("type", 3) # STRING
             payload["options"].append(option)
 
         # Now we have all options, make sure required is before optional.
