@@ -28,7 +28,6 @@ from __future__ import annotations
 import asyncio
 import collections
 import collections.abc
-from discord.http import HTTPClient
 
 import inspect
 import importlib.util
@@ -36,6 +35,7 @@ import sys
 import traceback
 import types
 from collections import defaultdict
+from discord.http import HTTPClient
 from typing import Any, Callable, Iterable, Tuple, cast, Mapping, List, Dict, TYPE_CHECKING, Optional, TypeVar, Type, Union
 
 import discord
@@ -1146,6 +1146,9 @@ class BotBase(GroupMixin):
             The interaction to process slash commands for.
 
         """
+        if interaction.type != discord.InteractionType.application_command:
+            return
+
         interaction.data = cast(ApplicationCommandInteractionData, interaction.data)
         command_name, command_options = _unwrap_slash_groups(interaction.data)
 
