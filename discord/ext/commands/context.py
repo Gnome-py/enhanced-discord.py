@@ -475,4 +475,4 @@ class Context(discord.abc.Messageable, Generic[BotT]):
 
     @discord.utils.copy_doc(Message.reply)
     async def reply(self, content: Optional[str] = None, **kwargs: Any) -> Message:
-        return await self.message.reply(content, **kwargs)
+        return await self.send(content, reference=self.message, **kwargs) # type: ignore
