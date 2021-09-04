@@ -473,6 +473,11 @@ class Context(discord.abc.Messageable, Generic[BotT]):
 
         return await send(content, ephemeral=ephemeral, **kwargs) # type: ignore
 
+    @overload
+    async def reply(self, content: Optional[str] = None, return_message: Literal[False] = False, **kwargs: Any) -> Optional[Union[Message, WebhookMessage]]: ...
+    @overload
+    async def reply(self, content: Optional[str] = None, return_message: Literal[True] = True, **kwargs: Any) -> Union[Message, WebhookMessage]: ...
+
     @discord.utils.copy_doc(Message.reply)
-    async def reply(self, content: Optional[str] = None, **kwargs: Any) -> Message:
-        return await self.send(content, reference=self.message, **kwargs) # type: ignore
+    async def reply(self, content: Optional[str] = None, return_message: bool = True, **kwargs: Any) -> Optional[Union[Message, WebhookMessage]]:
+        return await self.send(content, return_message=return_message, reference=self.message, **kwargs) # type: ignore
