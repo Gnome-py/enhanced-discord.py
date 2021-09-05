@@ -145,7 +145,7 @@ def get_signature_parameters(function: Callable[..., Any], globalns: Dict[str, A
     signature = inspect.signature(function)
     params = {}
     cache: Dict[str, Any] = {}
-    descriptions = defaultdict(lambda: 'no description')
+    descriptions = defaultdict(lambda: 'No description')
     eval_annotation = discord.utils.evaluate_annotation
     for name, parameter in signature.parameters.items():
         annotation = parameter.annotation
@@ -1195,7 +1195,7 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
 
         payload = {
             "name": self.name,
-            "description": self.short_doc or "no description",
+            "description": self.short_doc or "No description",
             "options": []
         }
         if nested != 0:
@@ -1630,7 +1630,7 @@ class Group(GroupMixin[CogT], Command[CogT, P, T]):
         return { # type: ignore
             "name": self.name,
             "type": int(not (nested - 1)) + 1,
-            "description": self.short_doc or 'no description',
+            "description": self.short_doc or 'No description',
             "options": [
                 cmd.to_application_command(nested=nested+1)
                 for cmd in self.commands
