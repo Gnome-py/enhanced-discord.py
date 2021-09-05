@@ -72,6 +72,10 @@ class Emoji(_EmojiTag, AssetMixin):
 
             Returns the emoji rendered for discord.
 
+        .. describe:: int(x)
+
+            Returns the emoji ID.
+
     Attributes
     -----------
     name: :class:`str`
@@ -136,6 +140,9 @@ class Emoji(_EmojiTag, AssetMixin):
         if self.animated:
             return f'<a:{self.name}:{self.id}>'
         return f'<:{self.name}:{self.id}>'
+
+    def __int__(self) -> int:
+        return self.id
 
     def __repr__(self) -> str:
         return f'<Emoji id={self.id} name={self.name!r} animated={self.animated} managed={self.managed}>'

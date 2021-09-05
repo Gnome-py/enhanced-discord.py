@@ -74,6 +74,10 @@ class Thread(Messageable, Hashable):
 
             Returns the thread's hash.
 
+        .. describe:: int(x)
+
+            Returns the thread's ID.
+
         .. describe:: str(x)
 
             Returns the thread's name.
@@ -748,6 +752,10 @@ class ThreadMember(Hashable):
 
             Returns the thread member's hash.
 
+        .. describe:: int(x)
+
+            Returns the thread member's ID.
+
         .. describe:: str(x)
 
             Returns the thread member's name.
@@ -800,3 +808,39 @@ class ThreadMember(Hashable):
     def thread(self) -> Thread:
         """:class:`Thread`: The thread this member belongs to."""
         return self.parent
+
+    async def fetch_member(self) -> Member:
+        """|coro|
+
+        Retrieves a :class:`Member` from the ThreadMember object.
+
+        .. note::
+
+            This method is an API call. If you have :attr:`Intents.members` and member cache enabled, consider :meth:`get_member` instead.
+
+        Raises
+        -------
+        Forbidden
+            You do not have access to the guild.
+        HTTPException
+            Fetching the member failed.
+
+        Returns
+        --------
+        :class:`Member`
+            The member.
+        """
+
+        return await self.thread.guild.fetch_member(self.id)
+
+    def get_member(self) -> Optional[Member]:
+        """
+        Get the :class:`Member` from cache for the ThreadMember object.
+
+        Returns
+        --------
+        Optional[:class:`Member`]
+            The member or ``None`` if not found.
+        """
+
+        return self.thread.guild.get_member(self.id)

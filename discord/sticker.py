@@ -67,6 +67,14 @@ class StickerPack(Hashable):
 
             Returns the name of the sticker pack.
 
+        .. describe:: hash(x)
+
+            Returns the hash of the sticker pack.
+
+        .. describe:: int(x)
+
+            Returns the ID of the sticker pack.
+
         .. describe:: x == y
 
            Checks if the sticker pack is equal to another sticker pack.

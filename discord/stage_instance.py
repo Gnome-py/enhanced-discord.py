@@ -61,6 +61,10 @@ class StageInstance(Hashable):
 
             Returns the stage instance's hash.
 
+        .. describe:: int(x)
+
+            Returns the stage instance's ID.
+
     Attributes
     -----------
     id: :class:`int`

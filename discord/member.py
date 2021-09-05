@@ -226,6 +226,10 @@ class Member(discord.abc.Messageable, _UserTag):
 
             Returns the member's name with the discriminator.
 
+        .. describe:: int(x)
+
+            Returns the user's ID.
+
     Attributes
     ----------
     joined_at: Optional[:class:`datetime.datetime`]
@@ -299,6 +303,9 @@ class Member(discord.abc.Messageable, _UserTag):
 
     def __str__(self) -> str:
         return str(self._user)
+
+    def __int__(self) -> int:
+        return self.id
 
     def __repr__(self) -> str:
         return (

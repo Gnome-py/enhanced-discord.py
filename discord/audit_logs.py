@@ -330,6 +330,10 @@ class AuditLogEntry(Hashable):
 
             Returns the entry's hash.
 
+        .. describe:: int(x)
+
+            Returns the entry's ID.
+
     .. versionchanged:: 1.7
         Audit log entries are now comparable and hashable.
 

@@ -230,6 +230,7 @@ class Invite(Hashable):
 
             Returns the invite URL.
 
+
     The following table illustrates what methods will obtain the attributes:
 
     +------------------------------------+------------------------------------------------------------+
@@ -432,6 +433,9 @@ class Invite(Hashable):
 
     def __str__(self) -> str:
         return self.url
+
+    def __int__(self) -> int:
+        return 0  # To keep the object compatible with the hashable abc.
 
     def __repr__(self) -> str:
         return (

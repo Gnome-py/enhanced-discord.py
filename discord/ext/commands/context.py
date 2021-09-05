@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
+
 from __future__ import annotations
 
 import inspect
@@ -32,6 +33,7 @@ import discord.abc
 import discord.utils
 
 from discord.message import Message
+from discord import Permissions
 
 if TYPE_CHECKING:
     from typing_extensions import ParamSpec
@@ -62,10 +64,7 @@ T = TypeVar('T')
 BotT = TypeVar('BotT', bound="Union[Bot, AutoShardedBot]")
 CogT = TypeVar('CogT', bound="Cog")
 
-if TYPE_CHECKING:
-    P = ParamSpec('P')
-else:
-    P = TypeVar('P')
+P = ParamSpec('P') if TYPE_CHECKING else TypeVar('P')
 
 
 class Context(discord.abc.Messageable, Generic[BotT]):
@@ -317,6 +316,13 @@ class Context(discord.abc.Messageable, Generic[BotT]):
         r"""Optional[:class:`.VoiceProtocol`]: A shortcut to :attr:`.Guild.voice_client`\, if applicable."""
         g = self.guild
         return g.voice_client if g else None
+
+    def author_permissions(self) -> Permissions:
+        """Returns the author permissions in the given channel.
+
+        .. versionadded:: 2.0
+        """
+        return self.channel.permissions_for(self.author)
 
     async def send_help(self, *args: Any) -> Any:
         """send_help(entity=<bot>)

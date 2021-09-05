@@ -1,5 +1,5 @@
-discord.py
-==========
+enhanced-discord.py
+===================
 
 .. image:: https://discord.com/api/guilds/514232441498763279/embed.png
    :target: https://discord.gg/PYAfZzpsjG
@@ -59,7 +59,7 @@ To install the development version, do the following:
 .. code:: sh
 
     $ git clone https://github.com/iDevision/enhanced-discord.py
-    $ cd discord.py
+    $ cd enhanced-discord.py
     $ python3 -m pip install -U .[voice]
 
 

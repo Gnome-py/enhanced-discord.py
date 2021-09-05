@@ -46,7 +46,7 @@ from . import utils, abc
 from .role import Role
 from .member import Member, VoiceState
 from .emoji import Emoji
-from .errors import InvalidData
+from .errors import InvalidData, NotFound
 from .permissions import PermissionOverwrite
 from .colour import Colour
 from .errors import InvalidArgument, ClientException
@@ -76,6 +76,7 @@ from .stage_instance import StageInstance
 from .threads import Thread, ThreadMember
 from .sticker import GuildSticker
 from .file import File
+from .welcome_screen import WelcomeScreen, WelcomeChannel
 
 
 __all__ = (
@@ -139,6 +140,10 @@ class Guild(Hashable):
         .. describe:: str(x)
 
             Returns the guild's name.
+
+        .. describe:: int(x)
+
+            Returns the guild's ID.
 
     Attributes
     ----------
@@ -738,12 +743,16 @@ class Guild(Hashable):
 
     @property
     def humans(self) -> List[Member]:
-        """List[:class:`Member`]: A list of human members that belong to this guild."""
+        """List[:class:`Member`]: A list of human members that belong to this guild.
+        
+        .. versionadded:: 2.0 """
         return [member for member in self.members if not member.bot]
 
     @property
     def bots(self) -> List[Member]:
-        """List[:class:`Member`]: A list of bots that belong to this guild."""
+        """List[:class:`Member`]: A list of bots that belong to this guild.
+        
+        .. versionadded:: 2.0 """
         return [member for member in self.members if member.bot]
 
     def get_member(self, user_id: int, /) -> Optional[Member]:
@@ -1715,6 +1724,8 @@ class Guild(Hashable):
             You do not have access to the guild.
         HTTPException
             Fetching the member failed.
+        NotFound
+            A member with that ID does not exist.
 
         Returns
         --------
@@ -1723,6 +1734,34 @@ class Guild(Hashable):
         """
         data = await self._state.http.get_member(self.id, member_id)
         return Member(data=data, state=self._state, guild=self)
+
+    async def try_member(self, member_id: int, /) -> Optional[Member]:
+        """|coro|
+
+        Returns a member with the given ID. This uses the cache first, and if not found, it'll request using :meth:`fetch_member`.
+
+        .. note::
+            This method might result in an API call.
+
+        Parameters
+        -----------
+        member_id: :class:`int`
+            The ID to search for.
+
+        Returns
+        --------
+        Optional[:class:`Member`]
+            The member or ``None`` if not found.
+        """
+        member = self.get_member(member_id)
+
+        if member:
+            return member
+        else:
+            try:
+                return await self.fetch_member(member_id)
+            except NotFound:
+                return None
 
     async def fetch_ban(self, user: Snowflake) -> BanEntry:
         """|coro|
@@ -2565,6 +2604,81 @@ class Guild(Hashable):
             self._roles[role.id] = role
 
         return roles
+
+    async def welcome_screen(self) -> WelcomeScreen:
+        """|coro|
+
+        Returns the guild's welcome screen.
+
+        The guild must have ``COMMUNITY`` in :attr:`~Guild.features`.
+
+        You must have the :attr:`~Permissions.manage_guild` permission to use
+        this as well.
+
+        .. versionadded:: 2.0
+
+        Raises
+        -------
+        Forbidden
+            You do not have the proper permissions to get this.
+        HTTPException
+            Retrieving the welcome screen failed.
+
+        Returns
+        --------
+        :class:`WelcomeScreen`
+            The welcome screen.
+        """
+        data = await self._state.http.get_welcome_screen(self.id)
+        return WelcomeScreen(data=data, guild=self)
+
+    @overload
+    async def edit_welcome_screen(
+        self,
+        *,
+        description: Optional[str] = ...,
+        welcome_channels: Optional[List[WelcomeChannel]] = ...,
+        enabled: Optional[bool] = ...,
+    ) -> WelcomeScreen:
+        ...
+
+    @overload
+    async def edit_welcome_screen(self) -> None:
+        ...
+
+    async def edit_welcome_screen(self, **kwargs):
+        """|coro|
+
+        A shorthand method of :attr:`WelcomeScreen.edit` without needing
+        to fetch the welcome screen beforehand.
+
+        The guild must have ``COMMUNITY`` in :attr:`~Guild.features`.
+
+        You must have the :attr:`~Permissions.manage_guild` permission to use
+        this as well.
+
+        .. versionadded:: 2.0
+
+        Returns
+        --------
+        :class:`WelcomeScreen`
+            The edited welcome screen.
+        """
+        try:
+            welcome_channels = kwargs['welcome_channels']
+        except KeyError:
+            pass
+        else:
+            welcome_channels_serialised = []
+            for wc in welcome_channels:
+                if not isinstance(wc, WelcomeChannel):
+                    raise InvalidArgument('welcome_channels parameter must be a list of WelcomeChannel')
+                welcome_channels_serialised.append(wc.to_dict())
+            kwargs['welcome_channels'] = welcome_channels_serialised
+
+        if kwargs:
+            data = await self._state.http.edit_welcome_screen(self.id, kwargs)
+            return WelcomeScreen(data=data, guild=self)
 
     async def kick(self, user: Snowflake, *, reason: Optional[str] = None) -> None:
         """|coro|

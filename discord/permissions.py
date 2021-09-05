@@ -299,6 +299,13 @@ class Permissions(BaseFlags):
         """
         return 1 << 3
 
+    @make_permission_alias('administrator')
+    def admin(self) -> int:
+        """:class:`bool`: An alias for :attr:`administrator`.
+        .. versionadded:: 2.0
+        """
+        return 1 << 3
+
     @flag_value
     def manage_channels(self) -> int:
         """:class:`bool`: Returns ``True`` if a user can edit, delete, or create channels in the guild.

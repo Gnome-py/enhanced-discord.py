@@ -251,6 +251,13 @@ class Colour:
     def red(cls: Type[CT]) -> CT:
         """A factory method that returns a :class:`Colour` with a value of ``0xe74c3c``."""
         return cls(0xe74c3c)
+    
+    @classmethod
+    def nitro_booster(cls):
+        """A factory method that returns a :class:`Colour` with a value of ``0xf47fff``.
+
+        .. versionadded:: 2.0"""
+        return cls(0xf47fff)
 
     @classmethod
     def dark_red(cls: Type[CT]) -> CT:
@@ -324,6 +331,15 @@ class Colour:
         .. versionadded:: 2.0
         """
         return cls(0xFEE75C)
+    
+    @classmethod
+    def dark_blurple(cls: Type[CT]) -> CT:
+        """A factory method that returns a :class:`Colour` with a value of ``0x4E5D94``.
+        This is the original Dark Blurple branding.
+
+        .. versionadded:: 2.0
+        """
+        return cls(0x4E5D94)
 
 
 Color = Colour

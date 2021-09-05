@@ -69,6 +69,10 @@ class Object(Hashable):
 
             Returns the object's hash.
 
+        .. describe:: int(x)
+
+            Returns the object's ID.
+
     Attributes
     -----------
     id: :class:`int`

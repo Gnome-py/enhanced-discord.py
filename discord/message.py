@@ -125,6 +125,10 @@ class Attachment(Hashable):
 
             Returns the hash of the attachment.
 
+        .. describe:: int(x)
+
+            Returns the attachment's ID.
+
     .. versionchanged:: 1.7
         Attachment can now be casted to :class:`str` and is hashable.
 
@@ -503,6 +507,14 @@ class Message(Hashable):
 
             Returns the message's hash.
 
+        .. describe:: str(x)
+
+            Returns the message's content.
+
+        .. describe:: int(x)
+
+            Returns the message's ID.
+
     Attributes
     -----------
     tts: :class:`bool`
@@ -711,6 +723,10 @@ class Message(Hashable):
         return (
             f'<{name} id={self.id} channel={self.channel!r} type={self.type!r} author={self.author!r} flags={self.flags!r}>'
         )
+
+
+    def __str__(self) -> Optional[str]:
+        return self.content
 
     def _try_patch(self, data, key, transform=None) -> None:
         try:
@@ -1633,6 +1649,10 @@ class PartialMessage(Hashable):
         .. describe:: hash(x)
 
             Returns the partial message's hash.
+
+        .. describe:: int(x)
+
+            Returns the partial message's ID.
 
     Attributes
     -----------

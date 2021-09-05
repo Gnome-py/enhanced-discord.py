@@ -1264,10 +1264,10 @@ class GroupMixin(Generic[CogT]):
         A mapping of command name to :class:`.Command`
         objects.
     case_insensitive: :class:`bool`
-        Whether the commands should be case insensitive. Defaults to ``False``.
+        Whether the commands should be case insensitive. Defaults to ``True``.
     """
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        case_insensitive = kwargs.get('case_insensitive', False)
+        case_insensitive = kwargs.get('case_insensitive', True)
         self.all_commands: Dict[str, Command[CogT, Any, Any]] = _CaseInsensitiveDict() if case_insensitive else {}
         self.case_insensitive: bool = case_insensitive
         super().__init__(*args, **kwargs)

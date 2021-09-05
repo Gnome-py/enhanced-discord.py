@@ -886,6 +886,10 @@ class Webhook(BaseWebhook):
 
             Returns the webhooks's hash.
 
+        .. describe:: int(x)
+
+            Returns the webhooks's ID.
+
     .. versionchanged:: 1.4
         Webhooks are now comparable and hashable.
 

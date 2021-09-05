@@ -115,6 +115,10 @@ class TextChannel(discord.abc.Messageable, discord.abc.GuildChannel, Hashable):
 
             Returns the channel's name.
 
+        .. describe:: int(x)
+
+            Returns the channel's ID.
+
     Attributes
     -----------
     name: :class:`str`
@@ -223,6 +227,16 @@ class TextChannel(discord.abc.Messageable, discord.abc.GuildChannel, Hashable):
     def members(self) -> List[Member]:
         """List[:class:`Member`]: Returns all members that can see this channel."""
         return [m for m in self.guild.members if self.permissions_for(m).read_messages]
+
+    @property
+    def bots(self) -> List[Member]:
+        """List[:class:`Member`]: Returns all bots that can see this channel."""
+        return [m for m in self.guild.members if m.bot and self.permissions_for(m).read_messages]
+
+    @property
+    def humans(self) -> List[Member]:
+        """List[:class:`Member`]: Returns all human members that can see this channel."""
+        return [m for m in self.guild.members if not m.bot and self.permissions_for(m).read_messages]
 
     @property
     def threads(self) -> List[Thread]:
@@ -1334,6 +1348,10 @@ class CategoryChannel(discord.abc.GuildChannel, Hashable):
 
             Returns the category's name.
 
+        .. describe:: int(x)
+
+            Returns the category's ID.
+
     Attributes
     -----------
     name: :class:`str`
@@ -1556,6 +1574,10 @@ class StoreChannel(discord.abc.GuildChannel, Hashable):
 
             Returns the channel's name.
 
+        .. describe:: int(x)
+
+            Returns the channel's ID.
+
     Attributes
     -----------
     name: :class:`str`
@@ -1728,6 +1750,10 @@ class DMChannel(discord.abc.Messageable, Hashable):
 
             Returns a string representation of the channel
 
+        .. describe:: int(x)
+
+            Returns the channel's ID.
+
     Attributes
     ----------
     recipient: Optional[:class:`User`]
@@ -1853,6 +1879,10 @@ class GroupChannel(discord.abc.Messageable, Hashable):
         .. describe:: str(x)
 
             Returns a string representation of the channel
+
+        .. describe:: int(x)
+
+            Returns the channel's ID.
 
     Attributes
     ----------
@@ -1999,6 +2029,10 @@ class PartialMessageable(discord.abc.Messageable, Hashable):
         .. describe:: hash(x)
 
             Returns the partial messageable's hash.
+
+        .. describe:: int(x)
+
+            Returns the messageable's ID.
 
     Attributes
     -----------

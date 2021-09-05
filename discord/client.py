@@ -842,6 +842,38 @@ class Client:
         """
         return self._connection.get_user(id)
 
+    async def try_user(self, id: int, /) -> Optional[User]:
+        """|coro|
+        Returns a user with the given ID. If not from cache, the user will be requested from the API.
+
+        You do not have to share any guilds with the user to get this information from the API,
+        however many operations do require that you do.
+
+        .. note::
+            This method is an API call. If you have :attr:`discord.Intents.members` and member cache enabled, consider :meth:`get_user` instead.
+
+        .. versionadded:: 2.0
+
+        Parameters
+        -----------
+        id: :class:`int`
+            The ID to search for.
+
+        Returns
+        --------
+        Optional[:class:`~discord.User`]
+            The user or ``None`` if not found.
+        """
+        maybe_user = self.get_user(id)
+
+        if maybe_user is not None:
+            return maybe_user
+
+        try:
+            return await self.fetch_user(id)
+        except NotFound:
+            return None
+
     def get_emoji(self, id: int, /) -> Optional[Emoji]:
         """Returns an emoji with the given ID.
 

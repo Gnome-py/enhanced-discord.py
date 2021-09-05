@@ -141,6 +141,14 @@ class Role(Hashable):
 
             Returns the role's name.
 
+        .. describe:: str(x)
+
+            Returns the role's ID.
+
+        .. describe:: int(x)
+
+            Returns the role's ID.
+
     Attributes
     ----------
     id: :class:`int`
@@ -194,6 +202,9 @@ class Role(Hashable):
 
     def __str__(self) -> str:
         return self.name
+
+    def __int__(self) -> int:
+        return self.id
 
     def __repr__(self) -> str:
         return f'<Role id={self.id} name={self.name!r}>'

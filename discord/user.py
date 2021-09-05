@@ -96,6 +96,9 @@ class BaseUser(_UserTag):
     def __str__(self) -> str:
         return f'{self.name}#{self.discriminator}'
 
+    def __int__(self) -> int:
+        return self.id
+
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, _UserTag) and other.id == self.id
 
@@ -414,6 +417,10 @@ class User(BaseUser, discord.abc.Messageable):
         .. describe:: str(x)
 
             Returns the user's name with discriminator.
+
+        .. describe:: int(x)
+
+            Returns the user's ID.
 
     Attributes
     -----------
