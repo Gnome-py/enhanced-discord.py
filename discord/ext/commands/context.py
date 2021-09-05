@@ -154,6 +154,7 @@ class Context(discord.abc.Messageable, Generic[BotT]):
         self.subcommand_passed: Optional[str] = subcommand_passed
         self.command_failed: bool = command_failed
         self.current_parameter: Optional[inspect.Parameter] = current_parameter
+        self._ignored_params: List[inspect.Parameter] = []
         self._state: ConnectionState = self.message._state
 
     async def invoke(self, command: Command[CogT, P, T], /, *args: P.args, **kwargs: P.kwargs) -> T:

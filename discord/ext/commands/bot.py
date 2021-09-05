@@ -148,6 +148,19 @@ def _unwrap_slash_groups(data: ApplicationCommandInteractionData) -> Tuple[str, 
 
     return command_name, command_options
 
+def _quote_string_safe(string: str) -> str:
+    # we need to quote this string otherwise we may spill into
+    # other parameters and cause all kinds of trouble, as many
+    # quotes are supported and some may be in the option, we
+    # loop through all supported quotes and if neither open or
+    # close are in the string, we add them
+    for open, close in supported_quotes.items():
+        if open not in string and close not in string:
+            return f"{open}{string}{close}"
+
+    # all supported quotes are in the message and we cannot add any
+    # safely, very unlikely but still got to be covered
+    raise errors.UnexpectedQuoteError(string)
 
 class _DefaultRepr:
     def __repr__(self):
@@ -1177,12 +1190,15 @@ class BotBase(GroupMixin):
             prefix = prefix[0]
 
         # Add arguments to fake message content, in the right order
+        ignore_params: List[inspect.Parameter] = []
         message.content = f'{prefix}{command_name} '
         for name, param in command.clean_params.items():
             option = next((o for o in command_options if o['name'] == name), None) # type: ignore
             if option is None:
                 if param.default is param.empty and not command._is_typing_optional(param.annotation):
                     raise errors.MissingRequiredArgument(param)
+                else:
+                    ignore_params.append(param)
             elif (
                 option["type"] == 3
                 and param.kind != param.KEYWORD_ONLY
@@ -1190,28 +1206,13 @@ class BotBase(GroupMixin):
             ):
                 # String with space in without "consume rest"
                 option = cast(_ApplicationCommandInteractionDataOptionString, option)
-
-                # we need to quote this string otherwise we may spill into
-                # other parameters and cause all kinds of trouble, as many
-                # quotes are supported and some may be in the option, we
-                # loop through all supported quotes and if neither open or
-                # close are in the string, we add them
-                quoted = False
-                string = option['value']
-                for open, close in supported_quotes.items():
-                    if open not in string and close not in string:
-                        message.content += f"{open}{string}{close} "
-                        quoted = True
-                        break
-
-                # all supported quotes are in the message and we cannot add any
-                # safely, very unlikely but still got to be covered
-                if not quoted:
-                    raise errors.UnexpectedQuoteError(string)
+                quoted_string = _quote_string_safe(option['value'])
+                message.content += f'{quoted_string} '
             else:
                 message.content += f'{option.get("value", "")} '
 
         ctx = await self.get_context(message)
+        ctx._ignored_params = ignore_params
         ctx.interaction = interaction
         await self.invoke(ctx)
 
