@@ -21,7 +21,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
-
 from __future__ import annotations
 
 import inspect
@@ -62,7 +61,10 @@ T = TypeVar('T')
 BotT = TypeVar('BotT', bound="Union[Bot, AutoShardedBot]")
 CogT = TypeVar('CogT', bound="Cog")
 
-P = ParamSpec('P') if TYPE_CHECKING else TypeVar('P')
+if TYPE_CHECKING:
+    P = ParamSpec('P')
+else:
+    P = TypeVar('P')
 
 
 class Context(discord.abc.Messageable, Generic[BotT]):

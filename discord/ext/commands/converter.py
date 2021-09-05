@@ -353,14 +353,14 @@ class PartialMessageConverter(Converter[discord.PartialMessage]):
 
     @staticmethod
     def _resolve_channel(ctx, guild_id, channel_id) -> Optional[PartialMessageableChannel]:
-        if guild_id is None:
-            return ctx.bot.get_channel(channel_id) if channel_id else ctx.channel
-
-        guild = ctx.bot.get_guild(guild_id)
-        if guild is not None and channel_id is not None:
-            return guild._resolve_channel(channel_id)  # type: ignore
+        if guild_id is not None:
+            guild = ctx.bot.get_guild(guild_id)
+            if guild is not None and channel_id is not None:
+                return guild._resolve_channel(channel_id)  # type: ignore
+            else:
+                return None
         else:
-            return None
+            return ctx.bot.get_channel(channel_id) if channel_id else ctx.channel
 
     async def convert(self, ctx: Context, argument: str) -> discord.PartialMessage:
         guild_id, message_id, channel_id = self._get_id_matches(ctx, argument)
@@ -754,8 +754,8 @@ class GuildConverter(IDConverter[discord.Guild]):
         if result is None:
             result = discord.utils.get(ctx.bot.guilds, name=argument)
 
-        if result is None:
-            raise GuildNotFound(argument)
+            if result is None:
+                raise GuildNotFound(argument)
         return result
 
 
@@ -939,7 +939,8 @@ class clean_content(Converter[str]):
         def repl(match: re.Match) -> str:
             type = match[1]
             id = int(match[2])
-            return transforms[type](id)
+            transformed = transforms[type](id)
+            return transformed
 
         result = re.sub(r'<(@[!&]?|#)([0-9]{15,20})>', repl, argument)
         if self.escape_markdown:

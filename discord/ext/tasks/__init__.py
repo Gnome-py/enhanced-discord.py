@@ -46,9 +46,7 @@ import traceback
 
 from collections.abc import Sequence
 from discord.backoff import ExponentialBackoff
-from discord.utils import MISSING, raise_expected_coro
-
-
+from discord.utils import MISSING
 
 __all__ = (
     'loop',
@@ -490,7 +488,11 @@ class Loop(Generic[LF]):
             The function was not a coroutine.
         """
 
-        return raise_expected_coro(coro, f'Expected coroutine function, received {coro.__class__.__name__!r}.')
+        if not inspect.iscoroutinefunction(coro):
+            raise TypeError(f'Expected coroutine function, received {coro.__class__.__name__!r}.')
+
+        self._before_loop = coro
+        return coro
 
     def after_loop(self, coro: FT) -> FT:
         """A decorator that register a coroutine to be called after the loop finished running.
@@ -514,7 +516,11 @@ class Loop(Generic[LF]):
             The function was not a coroutine.
         """
 
-        return raise_expected_coro(coro, f'Expected coroutine function, received {coro.__class__.__name__!r}.')
+        if not inspect.iscoroutinefunction(coro):
+            raise TypeError(f'Expected coroutine function, received {coro.__class__.__name__!r}.')
+
+        self._after_loop = coro
+        return coro
 
     def error(self, coro: ET) -> ET:
         """A decorator that registers a coroutine to be called if the task encounters an unhandled exception.
@@ -536,7 +542,11 @@ class Loop(Generic[LF]):
         TypeError
             The function was not a coroutine.
         """
-        return raise_expected_coro(coro, f'Expected coroutine function, received {coro.__class__.__name__!r}.')
+        if not inspect.iscoroutinefunction(coro):
+            raise TypeError(f'Expected coroutine function, received {coro.__class__.__name__!r}.')
+
+        self._error = coro  # type: ignore
+        return coro
 
     def _get_next_sleep_time(self) -> datetime.datetime:
         if self._sleep is not MISSING:
@@ -604,7 +614,8 @@ class Loop(Generic[LF]):
                 )
             ret.append(t if t.tzinfo is not None else t.replace(tzinfo=utc))
 
-        return sorted(set(ret))
+        ret = sorted(set(ret))  # de-dupe and sort times
+        return ret
 
     def change_interval(
         self,

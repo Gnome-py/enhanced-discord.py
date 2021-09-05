@@ -21,7 +21,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
-
 from __future__ import annotations
 
 import threading
@@ -64,7 +63,10 @@ __all__ = (
 
 CREATE_NO_WINDOW: int
 
-CREATE_NO_WINDOW = 0 if sys.platform != 'win32' else 0x08000000
+if sys.platform != 'win32':
+    CREATE_NO_WINDOW = 0
+else:
+    CREATE_NO_WINDOW = 0x08000000
 
 class AudioSource:
     """Represents an audio stream.
@@ -524,12 +526,7 @@ class FFmpegOpusAudio(FFmpegAudio):
 
     @staticmethod
     def _probe_codec_native(source, executable: str = 'ffmpeg') -> Tuple[Optional[str], Optional[int]]:
-        exe = (
-            executable[:2] + 'probe'
-            if executable in {'ffmpeg', 'avconv'}
-            else executable
-        )
-
+        exe = executable[:2] + 'probe' if executable in ('ffmpeg', 'avconv') else executable
         args = [exe, '-v', 'quiet', '-print_format', 'json', '-show_streams', '-select_streams', 'a:0', source]
         output = subprocess.check_output(args, timeout=20)
         codec = bitrate = None

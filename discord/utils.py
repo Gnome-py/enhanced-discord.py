@@ -499,13 +499,13 @@ else:
 
 def _parse_ratelimit_header(request: Any, *, use_clock: bool = False) -> float:
     reset_after: Optional[str] = request.headers.get('X-Ratelimit-Reset-After')
-    if not use_clock and reset_after:
+    if use_clock or not reset_after:
+        utc = datetime.timezone.utc
+        now = datetime.datetime.now(utc)
+        reset = datetime.datetime.fromtimestamp(float(request.headers['X-Ratelimit-Reset']), utc)
+        return (reset - now).total_seconds()
+    else:
         return float(reset_after)
-
-    utc = datetime.timezone.utc
-    now = datetime.datetime.now(utc)
-    reset = datetime.datetime.fromtimestamp(float(request.headers['X-Ratelimit-Reset']), utc)
-    return (reset - now).total_seconds()
 
 
 async def maybe_coroutine(f, *args, **kwargs):
@@ -659,10 +659,11 @@ def resolve_invite(invite: Union[Invite, str]) -> str:
 
     if isinstance(invite, Invite):
         return invite.code
-    rx = r'(?:https?\:\/\/)?discord(?:\.gg|(?:app)?\.com\/invite)\/(.+)'
-    m = re.match(rx, invite)
-    if m:
-        return m.group(1)
+    else:
+        rx = r'(?:https?\:\/\/)?discord(?:\.gg|(?:app)?\.com\/invite)\/(.+)'
+        m = re.match(rx, invite)
+        if m:
+            return m.group(1)
     return invite
 
 
@@ -686,10 +687,11 @@ def resolve_template(code: Union[Template, str]) -> str:
 
     if isinstance(code, Template):
         return code.code
-    rx = r'(?:https?\:\/\/)?discord(?:\.new|(?:app)?\.com\/template)\/(.+)'
-    m = re.match(rx, code)
-    if m:
-        return m.group(1)
+    else:
+        rx = r'(?:https?\:\/\/)?discord(?:\.new|(?:app)?\.com\/template)\/(.+)'
+        m = re.match(rx, code)
+        if m:
+            return m.group(1)
     return code
 
 
@@ -1015,9 +1017,3 @@ def format_dt(dt: datetime.datetime, /, style: Optional[TimestampStyle] = None) 
     if style is None:
         return f'<t:{int(dt.timestamp())}>'
     return f'<t:{int(dt.timestamp())}:{style}>'
-
-
-def raise_expected_coro(coro, error: str)-> TypeError:
-    if not asyncio.iscoroutinefunction(coro):
-        raise TypeError(error)
-    return coro
