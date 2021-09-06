@@ -34,13 +34,13 @@ If the bug report is missing this information then it'll take us longer to fix t
 
 ## Submitting a Pull Request
 
-Submitting a pull request is fairly simple, just make sure it focuses on a single aspect and doesn't manage to have scope creep and it's probably good to go. It would be incredibly lovely if the style is consistent to that found in the project. This project follows PEP-8 guidelines (mostly) with a column limit of 125.
+Submitting a pull request is fairly simple, just make sure it focuses on a single aspect and doesn't manage to have scope creep, and it's probably good to go. It would be incredibly lovely if the style is consistent to that found in the project. This project follows the black code format, with a line length limit of `120`
 
 ### Git Commit Guidelines
 
 - Use present tense (e.g. "Add feature" not "Added feature")
-- Limit all lines to 72 characters or less.
-- Reference issues or pull requests outside of the first line.
+- Limit all lines to 120 characters or fewer.
+- Reference issues or pull requests outside the first line.
     - Please use the shorthand `#123` and not the full URL.
 - Commits regarding the commands extension must be prefixed with `[commands]`
 

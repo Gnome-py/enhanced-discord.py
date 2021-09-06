@@ -32,8 +32,8 @@ from .errors import InvalidArgument
 from .partial_emoji import _EmojiTag
 
 __all__ = (
-    'WelcomeChannel',
-    'WelcomeScreen',
+    "WelcomeChannel",
+    "WelcomeScreen",
 )
 
 if TYPE_CHECKING:
@@ -68,15 +68,15 @@ class WelcomeChannel:
         self.emoji = emoji
 
     def __repr__(self) -> str:
-        return f'<WelcomeChannel channel={self.channel!r} description={self.description!r} emoji={self.emoji!r}>'
+        return f"<WelcomeChannel channel={self.channel!r} description={self.description!r} emoji={self.emoji!r}>"
 
     @classmethod
     def _from_dict(cls, *, data: WelcomeScreenChannelPayload, guild: Guild) -> WelcomeChannel:
-        channel_id = _get_as_snowflake(data, 'channel_id')
+        channel_id = _get_as_snowflake(data, "channel_id")
         channel = guild.get_channel(channel_id)
-        description = data['description']
-        _emoji_id = _get_as_snowflake(data, 'emoji_id')
-        _emoji_name = data['emoji_name']
+        description = data["description"]
+        _emoji_id = _get_as_snowflake(data, "emoji_id")
+        _emoji_name = data["emoji_name"]
 
         if _emoji_id:
             # custom
@@ -89,18 +89,18 @@ class WelcomeChannel:
 
     def to_dict(self) -> WelcomeScreenChannelPayload:
         ret: WelcomeScreenChannelPayload = {
-            'channel_id': self.channel.id,
-            'description': self.description,
-            'emoji_id': None,
-            'emoji_name': None,
+            "channel_id": self.channel.id,
+            "description": self.description,
+            "emoji_id": None,
+            "emoji_name": None,
         }
 
         if isinstance(self.emoji, _EmojiTag):
-            ret['emoji_id'] = self.emoji.id  # type: ignore
-            ret['emoji_name'] = self.emoji.name  # type: ignore
+            ret["emoji_id"] = self.emoji.id  # type: ignore
+            ret["emoji_name"] = self.emoji.name  # type: ignore
         else:
             # unicode or None
-            ret['emoji_name'] = self.emoji
+            ret["emoji_name"] = self.emoji
 
         return ret
 
@@ -124,12 +124,12 @@ class WelcomeScreen:
         self._store(data)
 
     def _store(self, data: WelcomeScreenPayload) -> None:
-        self.description = data['description']
-        welcome_channels = data.get('welcome_channels', [])
+        self.description = data["description"]
+        welcome_channels = data.get("welcome_channels", [])
         self.welcome_channels = [WelcomeChannel._from_dict(data=wc, guild=self._guild) for wc in welcome_channels]
 
     def __repr__(self) -> str:
-        return f'<WelcomeScreen description={self.description!r} welcome_channels={self.welcome_channels!r} enabled={self.enabled}>'
+        return f"<WelcomeScreen description={self.description!r} welcome_channels={self.welcome_channels!r} enabled={self.enabled}>"
 
     @property
     def enabled(self) -> bool:
@@ -138,7 +138,7 @@ class WelcomeScreen:
         This is equivalent to checking if ``WELCOME_SCREEN_ENABLED``
         is present in :attr:`Guild.features`.
         """
-        return 'WELCOME_SCREEN_ENABLED' in self._guild.features
+        return "WELCOME_SCREEN_ENABLED" in self._guild.features
 
     @overload
     async def edit(
@@ -200,16 +200,16 @@ class WelcomeScreen:
             This welcome screen does not exist.
         """
         try:
-            welcome_channels = kwargs['welcome_channels']
+            welcome_channels = kwargs["welcome_channels"]
         except KeyError:
             pass
         else:
             welcome_channels_serialised = []
             for wc in welcome_channels:
                 if not isinstance(wc, WelcomeChannel):
-                    raise InvalidArgument('welcome_channels parameter must be a list of WelcomeChannel')
+                    raise InvalidArgument("welcome_channels parameter must be a list of WelcomeChannel")
                 welcome_channels_serialised.append(wc.to_dict())
-            kwargs['welcome_channels'] = welcome_channels_serialised
+            kwargs["welcome_channels"] = welcome_channels_serialised
 
         if kwargs:
             data = await self._state.http.edit_welcome_screen(self._guild.id, kwargs)

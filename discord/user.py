@@ -45,11 +45,11 @@ if TYPE_CHECKING:
 
 
 __all__ = (
-    'User',
-    'ClientUser',
+    "User",
+    "ClientUser",
 )
 
-BU = TypeVar('BU', bound='BaseUser')
+BU = TypeVar("BU", bound="BaseUser")
 
 
 class _UserTag:
@@ -59,16 +59,16 @@ class _UserTag:
 
 class BaseUser(_UserTag):
     __slots__ = (
-        'name',
-        'id',
-        'discriminator',
-        '_avatar',
-        '_banner',
-        '_accent_colour',
-        'bot',
-        'system',
-        '_public_flags',
-        '_state',
+        "name",
+        "id",
+        "discriminator",
+        "_avatar",
+        "_banner",
+        "_accent_colour",
+        "bot",
+        "system",
+        "_public_flags",
+        "_state",
     )
 
     if TYPE_CHECKING:
@@ -94,7 +94,7 @@ class BaseUser(_UserTag):
         )
 
     def __str__(self) -> str:
-        return f'{self.name}#{self.discriminator}'
+        return f"{self.name}#{self.discriminator}"
 
     def __int__(self) -> int:
         return self.id
@@ -109,15 +109,15 @@ class BaseUser(_UserTag):
         return self.id >> 22
 
     def _update(self, data: UserPayload) -> None:
-        self.name = data['username']
-        self.id = int(data['id'])
-        self.discriminator = data['discriminator']
-        self._avatar = data['avatar']
-        self._banner = data.get('banner', None)
-        self._accent_colour = data.get('accent_color', None)
-        self._public_flags = data.get('public_flags', 0)
-        self.bot = data.get('bot', False)
-        self.system = data.get('system', False)
+        self.name = data["username"]
+        self.id = int(data["id"])
+        self.discriminator = data["discriminator"]
+        self._avatar = data["avatar"]
+        self._banner = data.get("banner", None)
+        self._accent_colour = data.get("accent_color", None)
+        self._public_flags = data.get("public_flags", 0)
+        self.bot = data.get("bot", False)
+        self.system = data.get("system", False)
 
     @classmethod
     def _copy(cls: Type[BU], user: BU) -> BU:
@@ -137,11 +137,11 @@ class BaseUser(_UserTag):
 
     def _to_minimal_user_json(self) -> Dict[str, Any]:
         return {
-            'username': self.name,
-            'id': self.id,
-            'avatar': self._avatar,
-            'discriminator': self.discriminator,
-            'bot': self.bot,
+            "username": self.name,
+            "id": self.id,
+            "avatar": self._avatar,
+            "discriminator": self.discriminator,
+            "bot": self.bot,
         }
 
     @property
@@ -240,7 +240,7 @@ class BaseUser(_UserTag):
     @property
     def mention(self) -> str:
         """:class:`str`: Returns a string that allows you to mention the given user."""
-        return f'<@{self.id}>'
+        return f"<@{self.id}>"
 
     @property
     def created_at(self) -> datetime:
@@ -324,7 +324,7 @@ class ClientUser(BaseUser):
         Specifies if the user has MFA turned on and working.
     """
 
-    __slots__ = ('locale', '_flags', 'verified', 'mfa_enabled', '__weakref__')
+    __slots__ = ("locale", "_flags", "verified", "mfa_enabled", "__weakref__")
 
     if TYPE_CHECKING:
         verified: bool
@@ -337,17 +337,17 @@ class ClientUser(BaseUser):
 
     def __repr__(self) -> str:
         return (
-            f'<ClientUser id={self.id} name={self.name!r} discriminator={self.discriminator!r}'
-            f' bot={self.bot} verified={self.verified} mfa_enabled={self.mfa_enabled}>'
+            f"<ClientUser id={self.id} name={self.name!r} discriminator={self.discriminator!r}"
+            f" bot={self.bot} verified={self.verified} mfa_enabled={self.mfa_enabled}>"
         )
 
     def _update(self, data: UserPayload) -> None:
         super()._update(data)
         # There's actually an Optional[str] phone field as well but I won't use it
-        self.verified = data.get('verified', False)
-        self.locale = data.get('locale')
-        self._flags = data.get('flags', 0)
-        self.mfa_enabled = data.get('mfa_enabled', False)
+        self.verified = data.get("verified", False)
+        self.locale = data.get("locale")
+        self._flags = data.get("flags", 0)
+        self.mfa_enabled = data.get("mfa_enabled", False)
 
     async def edit(self, *, username: str = MISSING, avatar: bytes = MISSING) -> ClientUser:
         """|coro|
@@ -388,10 +388,10 @@ class ClientUser(BaseUser):
         """
         payload: Dict[str, Any] = {}
         if username is not MISSING:
-            payload['username'] = username
+            payload["username"] = username
 
         if avatar is not MISSING:
-            payload['avatar'] = _bytes_to_base64_data(avatar)
+            payload["avatar"] = _bytes_to_base64_data(avatar)
 
         data: UserPayload = await self._state.http.edit_profile(payload)
         return ClientUser(state=self._state, data=data)
@@ -436,14 +436,14 @@ class User(BaseUser, discord.abc.Messageable):
         Specifies if the user is a system user (i.e. represents Discord officially).
     """
 
-    __slots__ = ('_stored',)
+    __slots__ = ("_stored",)
 
     def __init__(self, *, state: ConnectionState, data: UserPayload) -> None:
         super().__init__(state=state, data=data)
         self._stored: bool = False
 
     def __repr__(self) -> str:
-        return f'<User id={self.id} name={self.name!r} discriminator={self.discriminator!r} bot={self.bot}>'
+        return f"<User id={self.id} name={self.name!r} discriminator={self.discriminator!r} bot={self.bot}>"
 
     def __del__(self) -> None:
         try:

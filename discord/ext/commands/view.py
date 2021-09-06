@@ -46,6 +46,7 @@ _quotes = {
 }
 _all_quotes = set(_quotes.keys()) | set(_quotes.values())
 
+
 class StringView:
     def __init__(self, buffer):
         self.index = 0
@@ -81,19 +82,23 @@ class StringView:
 
     def skip_string(self, string):
         strlen = len(string)
-        if self.buffer[self.index:self.index + strlen] == string:
-            return self._return_index(strlen, True)
+        if self.buffer[self.index : self.index + strlen] == string:
+            self.previous = self.index
+            self.index += strlen
+            return True
         return False
 
     def read_rest(self):
-        result = self.buffer[self.index:]
+        result = self.buffer[self.index :]
         self.previous = self.index
         self.index = self.end
         return result
 
     def read(self, n):
-        result = self.buffer[self.index:self.index + n]
-        return self._return_index(n, result)
+        result = self.buffer[self.index : self.index + n]
+        self.previous = self.index
+        self.index += n
+        return result
 
     def get(self):
         try:
@@ -101,12 +106,9 @@ class StringView:
         except IndexError:
             result = None
 
-        return self._return_index(1, result)
-
-    def _return_index(self, arg0, arg1):
         self.previous = self.index
-        self.index += arg0
-        return arg1
+        self.index += 1
+        return result
 
     def get_word(self):
         pos = 0
@@ -119,7 +121,7 @@ class StringView:
             except IndexError:
                 break
         self.previous = self.index
-        result = self.buffer[self.index:self.index + pos]
+        result = self.buffer[self.index : self.index + pos]
         self.index += pos
         return result
 
@@ -143,11 +145,11 @@ class StringView:
                 if is_quoted:
                     # unexpected EOF
                     raise ExpectedClosingQuoteError(close_quote)
-                return ''.join(result)
+                return "".join(result)
 
             # currently we accept strings in the format of "hello world"
             # to embed a quote inside the string you must escape it: "a \"world\""
-            if current == '\\':
+            if current == "\\":
                 next_char = self.get()
                 if not next_char:
                     # string ends with \ and no character after it
@@ -155,7 +157,7 @@ class StringView:
                         # if we're quoted then we're expecting a closing quote
                         raise ExpectedClosingQuoteError(close_quote)
                     # if we aren't then we just let it through
-                    return ''.join(result)
+                    return "".join(result)
 
                 if next_char in _escaped_quotes:
                     # escaped quote
@@ -178,14 +180,13 @@ class StringView:
                     raise InvalidEndOfQuotedStringError(next_char)
 
                 # we're quoted so it's okay
-                return ''.join(result)
+                return "".join(result)
 
             if current.isspace() and not is_quoted:
                 # end of word found
-                return ''.join(result)
+                return "".join(result)
 
             result.append(current)
 
-
     def __repr__(self):
-        return f'<StringView pos: {self.index} prev: {self.previous} end: {self.end} eof: {self.eof}>'
+        return f"<StringView pos: {self.index} prev: {self.previous} end: {self.end} eof: {self.eof}>"

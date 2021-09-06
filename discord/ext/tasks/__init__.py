@@ -46,23 +46,19 @@ import traceback
 
 from collections.abc import Sequence
 from discord.backoff import ExponentialBackoff
-from discord.utils import MISSING, raise_expected_coro
+from discord.utils import MISSING
 
+__all__ = ("loop",)
 
-
-__all__ = (
-    'loop',
-)
-
-T = TypeVar('T')
+T = TypeVar("T")
 _func = Callable[..., Awaitable[Any]]
-LF = TypeVar('LF', bound=_func)
-FT = TypeVar('FT', bound=_func)
-ET = TypeVar('ET', bound=Callable[[Any, BaseException], Awaitable[Any]])
+LF = TypeVar("LF", bound=_func)
+FT = TypeVar("FT", bound=_func)
+ET = TypeVar("ET", bound=Callable[[Any, BaseException], Awaitable[Any]])
 
 
 class SleepHandle:
-    __slots__ = ('future', 'loop', 'handle')
+    __slots__ = ("future", "loop", "handle")
 
     def __init__(self, dt: datetime.datetime, *, loop: asyncio.AbstractEventLoop) -> None:
         self.loop = loop
@@ -126,7 +122,7 @@ class Loop(Generic[LF]):
         self._stop_next_iteration = False
 
         if self.count is not None and self.count <= 0:
-            raise ValueError('count must be greater than 0 or None.')
+            raise ValueError("count must be greater than 0 or None.")
 
         self.change_interval(seconds=seconds, minutes=minutes, hours=hours, time=time)
         self._last_iteration_failed = False
@@ -134,10 +130,10 @@ class Loop(Generic[LF]):
         self._next_iteration = None
 
         if not inspect.iscoroutinefunction(self.coro):
-            raise TypeError(f'Expected coroutine function, not {type(self.coro).__name__!r}.')
+            raise TypeError(f"Expected coroutine function, not {type(self.coro).__name__!r}.")
 
     async def _call_loop_function(self, name: str, *args: Any, **kwargs: Any) -> None:
-        coro = getattr(self, '_' + name)
+        coro = getattr(self, "_" + name)
         if coro is None:
             return
 
@@ -152,7 +148,7 @@ class Loop(Generic[LF]):
 
     async def _loop(self, *args: Any, **kwargs: Any) -> None:
         backoff = ExponentialBackoff()
-        await self._call_loop_function('before_loop')
+        await self._call_loop_function("before_loop")
         self._last_iteration_failed = False
         if self._time is not MISSING:
             # the time index should be prepared every time the internal loop is started
@@ -195,10 +191,10 @@ class Loop(Generic[LF]):
             raise
         except Exception as exc:
             self._has_failed = True
-            await self._call_loop_function('error', exc)
+            await self._call_loop_function("error", exc)
             raise exc
         finally:
-            await self._call_loop_function('after_loop')
+            await self._call_loop_function("after_loop")
             self._handle.cancel()
             self._is_being_cancelled = False
             self._current_loop = 0
@@ -325,7 +321,7 @@ class Loop(Generic[LF]):
         """
 
         if self._task is not MISSING and not self._task.done():
-            raise RuntimeError('Task is already launched and is not completed.')
+            raise RuntimeError("Task is already launched and is not completed.")
 
         if self._injected is not None:
             args = (self._injected, *args)
@@ -412,9 +408,9 @@ class Loop(Generic[LF]):
 
         for exc in exceptions:
             if not inspect.isclass(exc):
-                raise TypeError(f'{exc!r} must be a class.')
+                raise TypeError(f"{exc!r} must be a class.")
             if not issubclass(exc, BaseException):
-                raise TypeError(f'{exc!r} must inherit from BaseException.')
+                raise TypeError(f"{exc!r} must inherit from BaseException.")
 
         self._valid_exception = (*self._valid_exception, *exceptions)
 
@@ -468,7 +464,7 @@ class Loop(Generic[LF]):
 
     async def _error(self, *args: Any) -> None:
         exception: Exception = args[-1]
-        print(f'Unhandled exception in internal background task {self.coro.__name__!r}.', file=sys.stderr)
+        print(f"Unhandled exception in internal background task {self.coro.__name__!r}.", file=sys.stderr)
         traceback.print_exception(type(exception), exception, exception.__traceback__, file=sys.stderr)
 
     def before_loop(self, coro: FT) -> FT:
@@ -490,7 +486,11 @@ class Loop(Generic[LF]):
             The function was not a coroutine.
         """
 
-        return raise_expected_coro(coro, f'Expected coroutine function, received {coro.__class__.__name__!r}.')
+        if not inspect.iscoroutinefunction(coro):
+            raise TypeError(f"Expected coroutine function, received {coro.__class__.__name__!r}.")
+
+        self._before_loop = coro
+        return coro
 
     def after_loop(self, coro: FT) -> FT:
         """A decorator that register a coroutine to be called after the loop finished running.
@@ -514,7 +514,11 @@ class Loop(Generic[LF]):
             The function was not a coroutine.
         """
 
-        return raise_expected_coro(coro, f'Expected coroutine function, received {coro.__class__.__name__!r}.')
+        if not inspect.iscoroutinefunction(coro):
+            raise TypeError(f"Expected coroutine function, received {coro.__class__.__name__!r}.")
+
+        self._after_loop = coro
+        return coro
 
     def error(self, coro: ET) -> ET:
         """A decorator that registers a coroutine to be called if the task encounters an unhandled exception.
@@ -536,7 +540,11 @@ class Loop(Generic[LF]):
         TypeError
             The function was not a coroutine.
         """
-        return raise_expected_coro(coro, f'Expected coroutine function, received {coro.__class__.__name__!r}.')
+        if not inspect.iscoroutinefunction(coro):
+            raise TypeError(f"Expected coroutine function, received {coro.__class__.__name__!r}.")
+
+        self._error = coro  # type: ignore
+        return coro
 
     def _get_next_sleep_time(self) -> datetime.datetime:
         if self._sleep is not MISSING:
@@ -591,20 +599,21 @@ class Loop(Generic[LF]):
             return [inner]
         if not isinstance(time, Sequence):
             raise TypeError(
-                f'Expected datetime.time or a sequence of datetime.time for ``time``, received {type(time)!r} instead.'
+                f"Expected datetime.time or a sequence of datetime.time for ``time``, received {type(time)!r} instead."
             )
         if not time:
-            raise ValueError('time parameter must not be an empty sequence.')
+            raise ValueError("time parameter must not be an empty sequence.")
 
         ret: List[datetime.time] = []
         for index, t in enumerate(time):
             if not isinstance(t, dt):
                 raise TypeError(
-                    f'Expected a sequence of {dt!r} for ``time``, received {type(t).__name__!r} at index {index} instead.'
+                    f"Expected a sequence of {dt!r} for ``time``, received {type(t).__name__!r} at index {index} instead."
                 )
             ret.append(t if t.tzinfo is not None else t.replace(tzinfo=utc))
 
-        return sorted(set(ret))
+        ret = sorted(set(ret))  # de-dupe and sort times
+        return ret
 
     def change_interval(
         self,
@@ -652,7 +661,7 @@ class Loop(Generic[LF]):
             hours = hours or 0
             sleep = seconds + (minutes * 60.0) + (hours * 3600.0)
             if sleep < 0:
-                raise ValueError('Total number of seconds cannot be less than zero.')
+                raise ValueError("Total number of seconds cannot be less than zero.")
 
             self._sleep = sleep
             self._seconds = float(seconds)
@@ -661,7 +670,7 @@ class Loop(Generic[LF]):
             self._time: List[datetime.time] = MISSING
         else:
             if any((seconds, minutes, hours)):
-                raise TypeError('Cannot mix explicit time with relative time')
+                raise TypeError("Cannot mix explicit time with relative time")
             self._time = self._get_time_parameter(time)
             self._sleep = self._seconds = self._minutes = self._hours = MISSING
 

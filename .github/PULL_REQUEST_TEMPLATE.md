@@ -1,3 +1,5 @@
+<!-- Pull requests that do not fill this information in will likely be closed -->
+
 ## Summary
 
 <!-- What is this pull request for? Does it fix any issues? -->
