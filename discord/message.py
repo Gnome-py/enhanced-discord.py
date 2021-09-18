@@ -176,7 +176,7 @@ class Attachment(Hashable):
         .. versionadded:: 2.0
     """
 
-    __slots__ = ("id", "size", "height", "width", "filename", "url", "proxy_url", "ephemeral" "_http", "content_type")
+    __slots__ = ("id", "size", "height", "width", "filename", "url", "proxy_url", "ephemeral", "_http", "content_type")
 
     def __init__(self, *, data: AttachmentPayload, state: ConnectionState):
         self.id: int = int(data["id"])
