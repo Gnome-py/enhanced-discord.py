@@ -53,6 +53,7 @@ class _AttachmentOptional(TypedDict, total=False):
     height: Optional[int]
     width: Optional[int]
     content_type: str
+    ephemeral: bool
     spoiler: bool
 
 
