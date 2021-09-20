@@ -159,7 +159,7 @@ html_experimental_html5_writer = True
 html_theme = "basic"
 
 html_context = {
-    "discord_invite": "https://discord.gg/r3sSKJJ",
+    "discord_invite": "https://discord.gg/TvqYBrGXEm",
     "discord_extensions": [
         ("discord.ext.commands", "ext/commands"),
         ("discord.ext.tasks", "ext/tasks"),
@@ -167,7 +167,7 @@ html_context = {
 }
 
 resource_links = {
-    "discord": "https://discord.gg/r3sSKJJ",
+    "discord": "https://discord.gg/TvqYBrGXEm",
     "issues": "https://github.com/Rapptz/discord.py/issues",
     "discussions": "https://github.com/Rapptz/discord.py/discussions",
     "examples": f"https://github.com/Rapptz/discord.py/tree/{branch}/examples",

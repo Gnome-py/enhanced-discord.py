@@ -2,7 +2,7 @@ enhanced-discord.py
 ===================
 
 .. image:: https://discord.com/api/guilds/514232441498763279/embed.png
-   :target: https://discord.gg/PYAfZzpsjG
+   :target: https://discord.gg/TvqYBrGXEm
    :alt: Discord server invite
 .. image:: https://img.shields.io/pypi/v/enhanced-dpy.svg
    :target: https://pypi.python.org/pypi/enhanced-dpy
@@ -117,5 +117,5 @@ Links
 ------
 
 - `Documentation <https://enhanced-dpy.readthedocs.io/en/latest/index.html>`_
-- `Official Discord Server <https://discord.gg/PYAfZzpsjG>`_
+- `Official Discord Server <https://discord.gg/TvqYBrGXEm>`_
 - `Discord API <https://discord.gg/discord-api>`_
