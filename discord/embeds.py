@@ -398,16 +398,14 @@ class Embed:
         return EmbedProxy(getattr(self, "_image", {}))  # type: ignore
 
     @image.setter
-    def image(self: E, url: Any):
+    def image(self, url: Any):
         if url is EmptyEmbed:
-            del self._image
+            del self.image
         else:
-            self._image = {
-                "url": str(url),
-            }
+            self._image = {"url": str(url)}
 
     @image.deleter
-    def image(self: E):
+    def image(self):
         try:
             del self._image
         except AttributeError:
@@ -429,7 +427,6 @@ class Embed:
         """
 
         self.image = url
-
         return self
 
     @property
@@ -448,13 +445,11 @@ class Embed:
         return EmbedProxy(getattr(self, "_thumbnail", {}))  # type: ignore
 
     @thumbnail.setter
-    def thumbnail(self: E, url: Any):
+    def thumbnail(self, url: Any):
         if url is EmptyEmbed:
-            del self._thumbnail
+            del self.thumbnail
         else:
-            self._thumbnail = {
-                "url": str(url),
-            }
+            self._thumbnail = {"url": str(url)}
 
     @thumbnail.deleter
     def thumbnail(self):
@@ -463,7 +458,7 @@ class Embed:
         except AttributeError:
             pass
 
-    def set_thumbnail(self: E, *, url: MaybeEmpty[Any]):
+    def set_thumbnail(self, *, url: MaybeEmpty[Any]):
         """Sets the thumbnail for the embed content.
 
         This function returns the class instance to allow for fluent-style
@@ -479,7 +474,6 @@ class Embed:
         """
 
         self.thumbnail = url
-
         return self
 
     @property
