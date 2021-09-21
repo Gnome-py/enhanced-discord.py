@@ -399,9 +399,9 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
             command_attrs = {}
 
         try:
-            checks = command_attrs.pop("checks")
+            checks = func.__commands_checks__
             checks.reverse()
-        except KeyError:
+        except AttributeError:
             checks = kwargs.get("checks", [])
 
         try:
