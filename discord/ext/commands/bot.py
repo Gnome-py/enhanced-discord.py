@@ -1065,6 +1065,9 @@ class BotBase(GroupMixin):
             A list of prefixes or a single prefix that the bot is
             listening for.
         """
+        if isinstance(message, _FakeSlashMessage):
+            return "/"
+
         prefix = ret = self.command_prefix
         if callable(prefix):
             ret = await discord.utils.maybe_coroutine(prefix, self, message)
@@ -1261,15 +1264,12 @@ class BotBase(GroupMixin):
             else:
                 return  # cannot do anything without stable channel
 
-        # Fetch a valid prefix, so process_commands can function
+        # Make our fake message so we can pass it to ext.commands
         message: discord.Message = _FakeSlashMessage.from_interaction(interaction, channel)  # type: ignore
-        prefix = await self.get_prefix(message)
-        if isinstance(prefix, list):
-            prefix = prefix[0]
+        message.content = f"/{command_name} "
 
         # Add arguments to fake message content, in the right order
         ignore_params: List[inspect.Parameter] = []
-        message.content = f"{prefix}{command_name} "
         for name, param in command.clean_params.items():
             if inspect.isclass(param.annotation) and issubclass(param.annotation, FlagConverter):
                 for name, flag in param.annotation.get_flags().items():
