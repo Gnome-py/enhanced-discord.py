@@ -123,7 +123,7 @@ application_option_type_lookup = {
         discord.Member,
         discord.User,
     ): 6,  # Preferably discord.abc.User, but 'Protocols with non-method members don't support issubclass()'
-    (discord.abc.GuildChannel, discord.DMChannel): 7,
+    (discord.abc.GuildChannel, discord.Thread): 7,
     discord.Role: 8,
     discord.Object: 9,
     float: 10,
@@ -322,10 +322,15 @@ class Command(_BaseCommand, Generic[CogT, P, T]):
         This overwrites the global ``slash_commands`` parameter of :class:`.Bot`.
 
         .. versionadded:: 2.0
-    slash_command_guilds: Optional[:class:`List[int]`]
+    slash_command_guilds: Optional[List[:class:`int`]]
         If this is set, only upload this slash command to these guild IDs.
 
         This overwrites the global ``slash_command_guilds`` parameter of :class:`.Bot`.
+
+        .. versionadded:: 2.0
+
+    option_descriptions: Dict[:class:`str`, :class:`str`]
+        The unpacked option descriptions from :class:`.Option`.
 
         .. versionadded:: 2.0
     """

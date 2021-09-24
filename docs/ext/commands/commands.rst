@@ -61,12 +61,6 @@ the name to something other than the function would be as simple as doing this:
     async def _list(ctx, arg):
         pass
 
-Slash Commands
---------------
-Slash Commands can be enabled in the :class:`.Bot` constructor or :class:`.Command` constructor, using
-``slash_commands=True`` or ``slash_command=True`` respectfully. All features of the commands extension
-should work with these options enabled, however many will not have direct discord counterparts and therefore
-will be subsituted for supported versions when uploaded to discord.
 
 Parameters
 ------------
@@ -140,6 +134,11 @@ at all:
 Since the ``args`` variable is a :class:`py:tuple`,
 you can do anything you would usually do with one.
 
+.. admonition:: Slash Command Only
+
+    This functionally is currently not supported by the slash command API, so is turned into
+    a single ``STRING`` parameter on discord's end which we do our own parsing on.
+
 Keyword-Only Arguments
 ++++++++++++++++++++++++
 
@@ -186,7 +185,8 @@ know how the command was executed. It contains a lot of useful information:
 The context implements the :class:`abc.Messageable` interface, so anything you can do on a :class:`abc.Messageable` you
 can do on the :class:`~ext.commands.Context`.
 
-.. warning::
+.. admonition:: Slash Command Only
+
     :attr:`.Context.message` will be fake if in a slash command, it is not
     recommended to access if :attr:`.Context.interaction` is not None as most
     methods will error due to the message not actually existing.
@@ -412,47 +412,55 @@ specify.
 Under the hood, these are implemented by the :ref:`ext_commands_adv_converters` interface. A table of the equivalent
 converter is given below:
 
-+--------------------------+-------------------------------------------------+
-|     Discord Class        |                    Converter                    |
-+--------------------------+-------------------------------------------------+
-| :class:`Object`          | :class:`~ext.commands.ObjectConverter`          |
-+--------------------------+-------------------------------------------------+
-| :class:`Member`          | :class:`~ext.commands.MemberConverter`          |
-+--------------------------+-------------------------------------------------+
-| :class:`User`            | :class:`~ext.commands.UserConverter`            |
-+--------------------------+-------------------------------------------------+
-| :class:`Message`         | :class:`~ext.commands.MessageConverter`         |
-+--------------------------+-------------------------------------------------+
-| :class:`PartialMessage`  | :class:`~ext.commands.PartialMessageConverter`  |
-+--------------------------+-------------------------------------------------+
-| :class:`.GuildChannel`   | :class:`~ext.commands.GuildChannelConverter`    |
-+--------------------------+-------------------------------------------------+
-| :class:`TextChannel`     | :class:`~ext.commands.TextChannelConverter`     |
-+--------------------------+-------------------------------------------------+
-| :class:`VoiceChannel`    | :class:`~ext.commands.VoiceChannelConverter`    |
-+--------------------------+-------------------------------------------------+
-| :class:`StageChannel`    | :class:`~ext.commands.StageChannelConverter`    |
-+--------------------------+-------------------------------------------------+
-| :class:`StoreChannel`    | :class:`~ext.commands.StoreChannelConverter`    |
-+--------------------------+-------------------------------------------------+
-| :class:`CategoryChannel` | :class:`~ext.commands.CategoryChannelConverter` |
-+--------------------------+-------------------------------------------------+
-| :class:`Invite`          | :class:`~ext.commands.InviteConverter`          |
-+--------------------------+-------------------------------------------------+
-| :class:`Guild`           | :class:`~ext.commands.GuildConverter`           |
-+--------------------------+-------------------------------------------------+
-| :class:`Role`            | :class:`~ext.commands.RoleConverter`            |
-+--------------------------+-------------------------------------------------+
-| :class:`Game`            | :class:`~ext.commands.GameConverter`            |
-+--------------------------+-------------------------------------------------+
-| :class:`Colour`          | :class:`~ext.commands.ColourConverter`          |
-+--------------------------+-------------------------------------------------+
-| :class:`Emoji`           | :class:`~ext.commands.EmojiConverter`           |
-+--------------------------+-------------------------------------------------+
-| :class:`PartialEmoji`    | :class:`~ext.commands.PartialEmojiConverter`    |
-+--------------------------+-------------------------------------------------+
-| :class:`Thread`          | :class:`~ext.commands.ThreadConverter`          |
-+--------------------------+-------------------------------------------------+
++--------------------------+-------------------------------------------------+-----------------------------+
+|     Discord Class        |                    Converter                    | Supported By Slash Commands |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`Object`          | :class:`~ext.commands.ObjectConverter`          | Not currently               |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`Member`          | :class:`~ext.commands.MemberConverter`          | Yes, as type 6 (USER)       |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`User`            | :class:`~ext.commands.UserConverter`            | Yes, as type 6 (USER)       |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`Message`         | :class:`~ext.commands.MessageConverter`         | Not currently               |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`PartialMessage`  | :class:`~ext.commands.PartialMessageConverter`  | Not currently               |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`.GuildChannel`   | :class:`~ext.commands.GuildChannelConverter`    | Yes, as type 7 (CHANNEL)    |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`TextChannel`     | :class:`~ext.commands.TextChannelConverter`     | Yes, as type 7 (CHANNEL)    |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`VoiceChannel`    | :class:`~ext.commands.VoiceChannelConverter`    | Yes, as type 7 (CHANNEL)    |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`StageChannel`    | :class:`~ext.commands.StageChannelConverter`    | Yes, as type 7 (CHANNEL)    |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`StoreChannel`    | :class:`~ext.commands.StoreChannelConverter`    | Yes, as type 7 (CHANNEL)    |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`CategoryChannel` | :class:`~ext.commands.CategoryChannelConverter` | Yes, as type 7 (CHANNEL)    |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`Thread`          | :class:`~ext.commands.ThreadConverter`          | Yes, as type 7 (CHANNEL)    |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`Invite`          | :class:`~ext.commands.InviteConverter`          | Not currently               |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`Guild`           | :class:`~ext.commands.GuildConverter`           | Not currently               |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`Role`            | :class:`~ext.commands.RoleConverter`            | Yes, as type 8 (ROLE)       |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`Game`            | :class:`~ext.commands.GameConverter`            | Not currently               |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`Colour`          | :class:`~ext.commands.ColourConverter`          | Not currently               |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`Emoji`           | :class:`~ext.commands.EmojiConverter`           | Not currently               |
++--------------------------+-------------------------------------------------+-----------------------------+
+| :class:`PartialEmoji`    | :class:`~ext.commands.PartialEmojiConverter`    | Not currently               |
++--------------------------+-------------------------------------------------+-----------------------------+
+
+.. admonition:: Slash Command Only
+
+    If a slash command is not marked on the table above as supported, it will be sent as type 3 (STRING)
+    and parsed by normal content parsing, see
+    `the discord documentation <https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type>`_
+    for all supported types by the API.
+
 
 By providing the converter it allows us to use them as building blocks for another converter:
 
@@ -498,6 +506,10 @@ The way this works is through a left-to-right order. It first attempts to conver
 then a special error is raised, :exc:`~ext.commands.BadUnionArgument`.
 
 Note that any valid converter discussed above can be passed in to the argument list of a :data:`typing.Union`.
+
+.. admonition:: Slash Command Only
+
+    These are not currently supported by the Discord API and will be sent as type 3 (STRING)
 
 typing.Optional
 ^^^^^^^^^^^^^^^^^
@@ -691,6 +703,11 @@ In order to customise the flag syntax we also have a few options that can be pas
     Despite the similarities in these examples to command like arguments, the syntax and parser is not
     a command line parser. The syntax is mainly inspired by Discord's search bar input and as a result
     all flags need a corresponding value.
+
+.. admonition:: Slash Command Only
+
+    As these are built very similar to slash command options, they are converted into options and parsed
+    back into flags when the slash command is executed.
 
 The flag converter is similar to regular commands and allows you to use most types of converters
 (with the exception of :class:`~ext.commands.Greedy`) as the type annotation. Some extra support is added for specific

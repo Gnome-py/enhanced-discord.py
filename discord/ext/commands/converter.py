@@ -1008,25 +1008,48 @@ class Greedy(List[T]):
         return cls(converter=converter)
 
 
-if TYPE_CHECKING:
+class Option(Generic[T, DT]):  # type: ignore
+    """A special 'converter' to apply a description to slash command options.
 
+    For example in the following code:
+
+    .. code-block:: python3
+
+        @bot.command()
+        async def ban(ctx,
+            member: discord.Member, *,
+            reason: str = commands.Option('no reason', description='the reason to ban this member')
+        ):
+            await member.ban(reason=reason)
+
+    The description would be ``the reason to ban this member`` and the default would be ``no reason``
+
+    .. versionadded:: 2.0
+
+    Attributes
+    ------------
+    default: Optional[Any]
+        The default for this option, overwrites Option during parsing.
+    description: :class:`str`
+        The description for this option, is unpacked to :attr:`.Command.option_descriptions`
+    """
+
+    description: DT
+    default: Union[T, inspect._empty]
+    __slots__ = (
+        "default",
+        "description",
+    )
+
+    def __init__(self, default: T = inspect.Parameter.empty, *, description: DT) -> None:
+        self.description = description
+        self.default = default
+
+
+if TYPE_CHECKING:
+    # Terrible workaround for type checking reasons
     def Option(default: T = inspect.Parameter.empty, *, description: str) -> T:
         ...
-
-
-else:
-
-    class Option(Generic[T, DT]):
-        description: DT
-        default: Union[T, inspect.Parameter.empty]
-        __slots__ = (
-            "default",
-            "description",
-        )
-
-        def __init__(self, default: T = inspect.Parameter.empty, *, description: DT) -> None:
-            self.description = description
-            self.default = default
 
 
 def _convert_to_bool(argument: str) -> bool:

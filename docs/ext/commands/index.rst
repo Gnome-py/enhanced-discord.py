@@ -15,4 +15,5 @@ extension library that handles this for you.
     commands
     cogs
     extensions
+    slash-commands
     api
