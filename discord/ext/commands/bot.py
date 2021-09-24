@@ -35,7 +35,6 @@ import sys
 import traceback
 import types
 from collections import defaultdict
-from discord.http import HTTPClient
 from typing import (
     Any,
     Callable,
@@ -73,6 +72,7 @@ if TYPE_CHECKING:
     import importlib.machinery
 
     from discord.message import Message
+    from discord.http import HTTPClient
     from ._types import (
         Check,
         CoroFunc,
@@ -255,8 +255,9 @@ class BotBase(GroupMixin):
         await self.create_slash_commands()
 
     async def create_slash_commands(self):
-        commands: defaultdict[Optional[int], List[EditApplicationCommand]] = defaultdict(list)
-        for command in self.commands:
+        global_commands: List[EditApplicationCommand] = []
+        commands: defaultdict[int, List[EditApplicationCommand]] = defaultdict(list)
+        for command in self.all_commands.values():
             if command.hidden or (command.slash_command is None and not self.slash_commands):
                 continue
 
@@ -270,30 +271,21 @@ class BotBase(GroupMixin):
 
             guilds = command.slash_command_guilds or self.slash_command_guilds
             if guilds is None:
-                commands[None].append(payload)
+                global_commands.append(payload)
             else:
                 for guild in guilds:
                     commands[guild].append(payload)
 
         http: HTTPClient = self.http  # type: ignore
-        global_commands = commands.pop(None, None)
         application_id = self.application_id or (await self.application_info()).id  # type: ignore
+
         if global_commands is not None:
-            if self.slash_command_guilds is None:
-                await http.bulk_upsert_global_commands(
-                    payload=global_commands,
-                    application_id=application_id,
-                )
-            else:
-                for guild in self.slash_command_guilds:
-                    await http.bulk_upsert_guild_commands(
-                        guild_id=guild,
-                        payload=global_commands,
-                        application_id=application_id,
-                    )
+            await http.bulk_upsert_global_commands(
+                payload=global_commands,
+                application_id=application_id,
+            )
 
         for guild, guild_commands in commands.items():
-            assert guild is not None
             await http.bulk_upsert_guild_commands(
                 guild_id=guild,
                 payload=guild_commands,
