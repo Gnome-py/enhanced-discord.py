@@ -410,3 +410,34 @@ Example: ::
         await ctx.send(f'Pushing to {remote} {branch}')
 
 This could then be used as ``?git push origin master``.
+
+How do I make slash commands?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+See :doc:`/ext/commands/slash-commands`
+
+My slash commands aren't showing up!
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _ext_commands_slash_command_troubleshooting:
+
+You need to invite your bot with the ``application.commands`` scope on each guild and
+you need the :attr:`Permissions.use_slash_commands` permission in order to see slash commands.
+
+.. image:: /images/discord_oauth2_slash_scope.png
+    :alt: The scopes checkbox with "bot" and "applications.commands" ticked.
+
+Global slash commands (created by not specifying :attr:`~ext.commands.Bot.slash_command_guilds`) will also take up an
+hour to refresh on discord's end, so it is recommended to set :attr:`~ext.commands.Bot.slash_command_guilds` for development.
+
+If none of this works, make sure you are actually running enhanced-discord.py by doing ``print(bot.slash_commands)``
+
+My bot won't start after enabling slash commands!
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This means some of your command metadata is invalid for slash commands.
+Make sure your command names and option names are lowercase, and they have to match the regex ``^[\w-]{1,32}$``
+
+If you cannot figure out the problem, you should disable slash commands globally (:attr:`~ext.commands.Bot.slash_commands`\=False)
+then go through commands, enabling them specifically with :attr:`~.commands.Command.slash_command`\=True until it
+errors, then you can debug the problem with that command specifically.
