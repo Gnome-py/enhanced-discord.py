@@ -951,6 +951,15 @@ class MemberCacheFlags(BaseFlags):
         """
         return 2
 
+    @flag_value
+    def fetched(self):
+        """:class:`bool`: Whether to cache members that are fetched via :meth:``Guild.fetch_member``
+        or :meth:``Guild.fetch_members``
+
+        Members that leave the guild are no longer cached.
+        """
+        return 4
+
     @classmethod
     def from_intents(cls: Type[MemberCacheFlags], intents: Intents) -> MemberCacheFlags:
         """A factory method that creates a :class:`MemberCacheFlags` based on
@@ -968,6 +977,8 @@ class MemberCacheFlags(BaseFlags):
         """
 
         self = cls.none()
+        self.fetched = True
+
         if intents.members:
             self.joined = True
         if intents.voice_states:

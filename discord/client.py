@@ -53,7 +53,7 @@ from .widget import Widget
 from .guild import Guild
 from .emoji import Emoji
 from .channel import _threaded_channel_factory, PartialMessageable
-from .enums import ChannelType
+from .enums import ChannelType, StickerType
 from .mentions import AllowedMentions
 from .errors import *
 from .enums import Status, VoiceRegion
@@ -76,7 +76,8 @@ from .threads import Thread
 from .sticker import GuildSticker, StandardSticker, StickerPack, _sticker_factory
 
 if TYPE_CHECKING:
-    from .abc import SnowflakeTime, PrivateChannel, GuildChannel, Snowflake
+    from .abc import SnowflakeTime, PrivateChannel, GuildChannel as GuildChannelABC, Snowflake
+    from .guild import GuildChannel
     from .channel import DMChannel
     from .message import Message
     from .member import Member
@@ -780,7 +781,7 @@ class Client:
         """List[:class:`~discord.User`]: Returns a list of all the users the bot can see."""
         return list(self._connection._users.values())
 
-    def get_channel(self, id: int, /) -> Optional[Union[GuildChannel, Thread, PrivateChannel]]:
+    def get_channel(self, id: int, /) -> Optional[Union[GuildChannelABC, Thread, PrivateChannel]]:
         """Returns a channel or thread with the given ID.
 
         Parameters
@@ -933,7 +934,7 @@ class Client:
         """
         return self._connection.get_sticker(id)
 
-    def get_all_channels(self) -> Generator[GuildChannel, None, None]:
+    def get_all_channels(self) -> Generator[GuildChannelABC, None, None]:
         """A generator that retrieves every :class:`.abc.GuildChannel` the client can 'access'.
 
         This is equivalent to: ::
@@ -1488,6 +1489,7 @@ class Client:
         """|coro|
 
         Retrieves the bot's application information.
+        This will fill up :attr:`application_id` and :attr:`application_flags`.
 
         Raises
         -------
@@ -1502,6 +1504,8 @@ class Client:
         data = await self.http.application_info()
         if "rpc_origins" not in data:
             data["rpc_origins"] = None
+
+        self._connection.store_appinfo(data)
         return AppInfo(self._connection, data)
 
     async def fetch_user(self, user_id: int, /) -> User:
@@ -1535,10 +1539,11 @@ class Client:
         data = await self.http.get_user(user_id)
         return User(state=self._connection, data=data)
 
-    async def fetch_channel(self, channel_id: int, /) -> Union[GuildChannel, PrivateChannel, Thread]:
+    async def fetch_channel(self, channel_id: int, /) -> Union[GuildChannelABC, PrivateChannel, Thread]:
         """|coro|
 
         Retrieves a :class:`.abc.GuildChannel`, :class:`.abc.PrivateChannel`, or :class:`.Thread` with the specified ID.
+        If found, will store the Channel in the internal cache, meaning :meth:``get_channel`` will succeed afterwards.
 
         .. note::
 
@@ -1570,14 +1575,18 @@ class Client:
 
         if ch_type in (ChannelType.group, ChannelType.private):
             # the factory will be a DMChannel or GroupChannel here
-            channel = factory(me=self.user, data=data, state=self._connection)  # type: ignore
+            channel: PrivateChannel = factory(me=self.user, data=data, state=self._connection)  # type: ignore
+            self._connection._add_private_channel(channel)  # type: ignore
         else:
             # the factory can't be a DMChannel or GroupChannel here
             guild_id = int(data["guild_id"])  # type: ignore
-            guild = self.get_guild(guild_id) or Object(id=guild_id)
-            # GuildChannels expect a Guild, we may be passing an Object
-            channel = factory(guild=guild, state=self._connection, data=data)  # type: ignore
+            guild = self.get_guild(guild_id)
 
+            if guild is None:
+                return factory(guild=Object(guild_id), state=self._connection, data=data)  # type: ignore
+
+            channel: GuildChannel = factory(guild=guild, state=self._connection, data=data)  # type: ignore
+            guild._add_channel(channel)
         return channel
 
     async def fetch_webhook(self, webhook_id: int, /) -> Webhook:
@@ -1606,6 +1615,7 @@ class Client:
         """|coro|
 
         Retrieves a :class:`.Sticker` with the specified ID.
+        If found, will store the sticker in the internal cache, meaning :meth:``get_sticker`` will succeed afterwards.
 
         .. versionadded:: 2.0
 
@@ -1623,7 +1633,11 @@ class Client:
         """
         data = await self.http.get_sticker(sticker_id)
         cls, _ = _sticker_factory(data["type"])  # type: ignore
-        return cls(state=self._connection, data=data)  # type: ignore
+
+        if data["type"] == StickerType.guild:  # type: ignore
+            return self._connection.store_sticker(data)  # type: ignore
+        else:
+            return cls(state=self._connection, data=data)  # type: ignore
 
     async def fetch_premium_sticker_packs(self) -> List[StickerPack]:
         """|coro|

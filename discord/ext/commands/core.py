@@ -1694,7 +1694,9 @@ class Group(GroupMixin[CogT], Command[CogT, P, T]):
             "name": self.name,
             "type": int(not (nested - 1)) + 1,
             "description": self.short_doc or "no description",
-            "options": [cmd.to_application_command(nested=nested + 1) for cmd in sorted(self.commands, key=lambda x: x.name)],
+            "options": [
+                cmd.to_application_command(nested=nested + 1) for cmd in sorted(self.commands, key=lambda x: x.name)
+            ],
         }
 
 

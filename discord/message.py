@@ -1331,7 +1331,7 @@ class Message(Hashable):
                 payload["components"] = []
 
         data = await self._state.http.edit_message(self.channel.id, self.id, **payload)
-        message = Message(state=self._state, channel=self.channel, data=data)
+        message = self._state.store_message(channel=self.channel, data=data)
 
         if view and not view.is_finished():
             self._state.store_view(view, self.id)
@@ -1756,7 +1756,7 @@ class PartialMessage(Hashable):
         """
 
         data = await self._state.http.get_message(self.channel.id, self.id)
-        return self._state.create_message(channel=self.channel, data=data)
+        return self._state.store_message(channel=self.channel, data=data)
 
     async def edit(self, **fields: Any) -> Optional[Message]:
         """|coro|
@@ -1873,7 +1873,7 @@ class PartialMessage(Hashable):
 
         if fields:
             # data isn't unbound
-            msg = self._state.create_message(channel=self.channel, data=data)  # type: ignore
+            msg = self._state.store_message(channel=self.channel, data=data)  # type: ignore
             if view and not view.is_finished():
                 self._state.store_view(view, self.id)
             return msg

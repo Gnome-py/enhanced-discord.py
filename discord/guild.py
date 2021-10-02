@@ -428,7 +428,7 @@ class Guild(Hashable):
         self.mfa_level: MFALevel = guild.get("mfa_level")
         self.emojis: Tuple[Emoji, ...] = tuple(map(lambda d: state.store_emoji(self, d), guild.get("emojis", [])))
         self.stickers: Tuple[GuildSticker, ...] = tuple(
-            map(lambda d: state.store_sticker(self, d), guild.get("stickers", []))
+            map(lambda d: state.store_sticker(d), guild.get("stickers", []))
         )
         self.features: List[GuildFeature] = guild.get("features", [])
         self._splash: Optional[str] = guild.get("splash")
@@ -1594,6 +1594,7 @@ class Guild(Hashable):
         """|coro|
 
         Retrieves all :class:`abc.GuildChannel` that the guild has.
+        Will store the Channels in the internal cache, meaning :meth:``get_channel`` will succeed afterwards.
 
         .. note::
 
@@ -1616,11 +1617,12 @@ class Guild(Hashable):
         data = await self._state.http.get_all_guild_channels(self.id)
 
         def convert(d):
-            factory, ch_type = _guild_channel_factory(d["type"])
+            factory, _ = _guild_channel_factory(d["type"])
             if factory is None:
                 raise InvalidData("Unknown channel type {type} for channel ID {id}.".format_map(d))
 
             channel = factory(guild=self, state=self._state, data=d)
+            self._add_channel(channel)
             return channel
 
         return [convert(d) for d in data]
@@ -1712,6 +1714,8 @@ class Guild(Hashable):
         """|coro|
 
         Retrieves a :class:`Member` from a guild ID, and a member ID.
+        If found, will store the Member in the internal cache, filling up :attr:`members`
+        and meaning :meth:``get_member`` will succeed afterwards.
 
         .. note::
 
@@ -1737,7 +1741,11 @@ class Guild(Hashable):
             The member from the member ID.
         """
         data = await self._state.http.get_member(self.id, member_id)
-        return Member(data=data, state=self._state, guild=self)
+        member = Member(data=data, state=self._state, guild=self)
+        if self._state.member_cache_flags.fetched:
+            self._add_member(member)
+
+        return member
 
     async def try_member(self, member_id: int, /) -> Optional[Member]:
         """|coro|
@@ -2257,7 +2265,7 @@ class Guild(Hashable):
         payload["tags"] = emoji
 
         data = await self._state.http.create_guild_sticker(self.id, payload, file, reason)
-        return self._state.store_sticker(self, data)
+        return self._state.store_sticker(data)
 
     async def delete_sticker(self, sticker: Snowflake, *, reason: Optional[str] = None) -> None:
         """|coro|

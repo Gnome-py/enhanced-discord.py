@@ -137,7 +137,7 @@ class Interaction:
 
         self.message: Optional[Message]
         try:
-            self.message = Message(state=self._state, channel=self.channel, data=data["message"])  # type: ignore
+            self.message = self._state.store_message(channel=self.channel, data=data["message"])  # type: ignore
         except KeyError:
             self.message = None
 

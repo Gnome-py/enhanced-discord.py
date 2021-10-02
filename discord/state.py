@@ -27,7 +27,6 @@ from __future__ import annotations
 import asyncio
 from collections import deque, OrderedDict
 import copy
-import datetime
 import itertools
 import logging
 from typing import Dict, Optional, TYPE_CHECKING, Union, Callable, Any, List, TypeVar, Coroutine, Sequence, Tuple, Deque
@@ -75,6 +74,7 @@ if TYPE_CHECKING:
     from .types.sticker import GuildSticker as GuildStickerPayload
     from .types.guild import Guild as GuildPayload
     from .types.message import Message as MessagePayload
+    from .types.appinfo import AppInfo as AppInfoPayload
 
     T = TypeVar("T")
     CS = TypeVar("CS", bound="ConnectionState")
@@ -323,6 +323,13 @@ class ConnectionState:
         for vc in self.voice_clients:
             vc.main_ws = ws  # type: ignore
 
+    def store_message(self, channel: MessageableChannel, data: MessagePayload) -> Message:
+        message = Message(state=self, channel=channel, data=data)
+        if self._messages is not None:
+            self._messages.append(message)
+
+        return message
+
     def store_user(self, data: UserPayload) -> User:
         user_id = int(data["id"])
         try:
@@ -353,10 +360,19 @@ class ConnectionState:
         self._emojis[emoji_id] = emoji = Emoji(guild=guild, state=self, data=data)
         return emoji
 
-    def store_sticker(self, guild: Guild, data: GuildStickerPayload) -> GuildSticker:
+    def store_sticker(self, data: GuildStickerPayload) -> GuildSticker:
         sticker_id = int(data["id"])
         self._stickers[sticker_id] = sticker = GuildSticker(state=self, data=data)
         return sticker
+
+    def store_appinfo(self, data: AppInfoPayload):
+        self.application_id = utils._get_as_snowflake(data, "id")
+
+        flags = data.get("flags")
+        if flags is not None:
+            self.application_flags = ApplicationFlags._from_value(flags)
+
+        return data
 
     def store_view(self, view: View, message_id: Optional[int] = None) -> None:
         self._view_store.add_view(view, message_id)
@@ -563,9 +579,7 @@ class ConnectionState:
             except KeyError:
                 pass
             else:
-                self.application_id = utils._get_as_snowflake(application, "id")
-                # flags will always be present here
-                self.application_flags = ApplicationFlags._from_value(application["flags"])  # type: ignore
+                self.store_appinfo(application)
 
         for guild_data in data["guilds"]:
             self._add_guild_from_data(guild_data)
@@ -581,8 +595,7 @@ class ConnectionState:
         # channel would be the correct type here
         message = Message(channel=channel, data=data, state=self)  # type: ignore
         self.dispatch("message", message)
-        if self._messages is not None:
-            self._messages.append(message)
+        self.store_message(channel, data)
         # we ensure that the channel is either a TextChannel or Thread
         if channel and channel.__class__ in (TextChannel, Thread):
             channel.last_message_id = message.id  # type: ignore
@@ -1032,7 +1045,7 @@ class ConnectionState:
         for emoji in before_stickers:
             self._stickers.pop(emoji.id, None)
         # guild won't be None here
-        guild.stickers = tuple(map(lambda d: self.store_sticker(guild, d), data["stickers"]))  # type: ignore
+        guild.stickers = tuple(map(lambda d: self.store_sticker(d), data["stickers"]))  # type: ignore
         self.dispatch("guild_stickers_update", guild, before_stickers, guild.stickers)
 
     def _get_create_guild(self, data):
@@ -1402,11 +1415,6 @@ class ConnectionState:
             channel = guild._resolve_channel(id)
             if channel is not None:
                 return channel
-
-    def create_message(
-        self, *, channel: Union[TextChannel, Thread, DMChannel, GroupChannel, PartialMessageable], data: MessagePayload
-    ) -> Message:
-        return Message(state=self, channel=channel, data=data)
 
 
 class AutoShardedConnectionState(ConnectionState):

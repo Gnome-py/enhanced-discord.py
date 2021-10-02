@@ -42,22 +42,12 @@ __all__ = (
 )
 
 if TYPE_CHECKING:
-    from .types.audit_log import (
-        AuditLog as AuditLogPayload,
-    )
-    from .types.guild import (
-        Guild as GuildPayload,
-    )
-    from .types.message import (
-        Message as MessagePayload,
-    )
-    from .types.user import (
-        PartialUser as PartialUserPayload,
-    )
-
-    from .types.threads import (
-        Thread as ThreadPayload,
-    )
+    from .types.member import MemberWithUser as MemberWithUserPayload
+    from .types.user import PartialUser as PartialUserPayload
+    from .types.audit_log import AuditLog as AuditLogPayload
+    from .types.message import Message as MessagePayload
+    from .types.threads import Thread as ThreadPayload
+    from .types.guild import Guild as GuildPayload
 
     from .member import Member
     from .user import User
@@ -354,7 +344,7 @@ class HistoryIterator(_AsyncIterator["Message"]):
 
             channel = self.channel
             for element in data:
-                await self.messages.put(self.state.create_message(channel=channel, data=element))
+                await self.messages.put(self.state.store_message(channel=channel, data=element))
 
     async def _retrieve_messages(self, retrieve) -> List[Message]:
         """Retrieve messages and update next parameters."""
@@ -615,13 +605,17 @@ class MemberIterator(_AsyncIterator["Member"]):
         if isinstance(after, datetime.datetime):
             after = Object(id=time_snowflake(after, high=True))
 
-        self.guild = guild
         self.limit = limit
+        self.guild: Guild = guild
         self.after = after or OLDEST_OBJECT
 
         self.state = self.guild._state
         self.get_members = self.state.http.get_members
         self.members = asyncio.Queue()
+
+        self.create_member = (
+            self.create_member_cache if self.state.member_cache_flags.fetched else self.create_member_no_cache
+        )
 
     async def next(self) -> Member:
         if self.members.empty():
@@ -657,10 +651,15 @@ class MemberIterator(_AsyncIterator["Member"]):
             for element in reversed(data):
                 await self.members.put(self.create_member(element))
 
-    def create_member(self, data):
+    def create_member_no_cache(self, data: MemberWithUserPayload) -> Member:
         from .member import Member
 
         return Member(data=data, guild=self.guild, state=self.state)
+
+    def create_member_cache(self, data: MemberWithUserPayload) -> Member:
+        member = self.create_member_no_cache(data)
+        self.guild._add_member(member)
+        return member
 
 
 class ArchivedThreadIterator(_AsyncIterator["Thread"]):

@@ -1434,7 +1434,7 @@ class Messageable:
                 components=components,
             )
 
-        ret = state.create_message(channel=channel, data=data)
+        ret = state.store_message(channel=channel, data=data)
         if view:
             state.store_view(view, ret.id)
 
@@ -1501,7 +1501,7 @@ class Messageable:
 
         channel = await self._get_channel()
         data = await self._state.http.get_message(channel.id, id)
-        return self._state.create_message(channel=channel, data=data)
+        return self._state.store_message(channel=channel, data=data)
 
     async def pins(self) -> List[Message]:
         """|coro|
@@ -1528,7 +1528,7 @@ class Messageable:
         channel = await self._get_channel()
         state = self._state
         data = await state.http.pins_from(channel.id)
-        return [state.create_message(channel=channel, data=m) for m in data]
+        return [state.store_message(channel=channel, data=m) for m in data]
 
     def history(
         self,

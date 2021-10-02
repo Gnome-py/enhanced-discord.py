@@ -455,7 +455,7 @@ class BadInviteArgument(BadArgument):
     This inherits from :exc:`BadArgument`
 
     .. versionadded:: 1.5
-    
+
     Attributes
     -----------
     argument: :class:`str`
