@@ -23,13 +23,14 @@ DEALINGS IN THE SOFTWARE.
 """
 
 from __future__ import annotations
-from typing import Any, Dict, List, Optional, TypeVar, Union, overload, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, TypeVar, Union, TYPE_CHECKING
 
+from .asset import Asset
 from .permissions import Permissions
 from .errors import InvalidArgument
 from .colour import Colour
 from .mixins import Hashable
-from .utils import snowflake_time, _get_as_snowflake, MISSING
+from .utils import snowflake_time, _get_as_snowflake, MISSING, _bytes_to_base64_data
 
 __all__ = (
     "RoleTags",
@@ -158,7 +159,15 @@ class Role(Hashable):
     guild: :class:`Guild`
         The guild the role belongs to.
     hoist: :class:`bool`
-         Indicates if the role will be displayed separately from other members.
+        Indicates if the role will be displayed separately from other members.
+    icon: Optional[:class:`Asset`]
+        The icon for the role.
+
+        .. versionadded:: 2.0
+    emoji: Optional[:class:`str`]
+        The unicode emoji shown for the role.
+
+        .. versionadded:: 2.0
     position: :class:`int`
         The position of the role. This number is usually positive. The bottom
         role has a position of 0.
@@ -191,6 +200,8 @@ class Role(Hashable):
         "hoist",
         "guild",
         "tags",
+        "_icon",
+        "emoji",
         "_state",
     )
 
@@ -251,6 +262,8 @@ class Role(Hashable):
         self.position: int = data.get("position", 0)
         self._colour: int = data.get("color", 0)
         self.hoist: bool = data.get("hoist", False)
+        self.emoji: Optional[str] = data.get("unicode_emoji")
+        self._icon: Optional[str] = data.get("icon")
         self.managed: bool = data.get("managed", False)
         self.mentionable: bool = data.get("mentionable", False)
         self.tags: Optional[RoleTags]
@@ -319,6 +332,12 @@ class Role(Hashable):
         return f"<@&{self.id}>"
 
     @property
+    def icon(self) -> Optional[Asset]:
+        if self._icon is None:
+            return
+        return Asset._from_role_icon(self._state, self.id, self._icon)
+
+    @property
     def members(self) -> List[Member]:
         """List[:class:`Member`]: Returns all the members with this role."""
         all_members = self.guild.members
@@ -361,6 +380,8 @@ class Role(Hashable):
         hoist: bool = MISSING,
         mentionable: bool = MISSING,
         position: int = MISSING,
+        icon: bytes = MISSING,
+        emoji: str = MISSING,
         reason: Optional[str] = MISSING,
     ) -> Optional[Role]:
         """|coro|
@@ -393,6 +414,10 @@ class Role(Hashable):
         position: :class:`int`
             The new role's position. This must be below your top role's
             position or it will fail.
+        emoji: :class:`str`
+            The unicode emoji that is shown next to users with the role.
+        icon: :class:`bytes`
+            A custom image that is shown next to users with the role.
         reason: Optional[:class:`str`]
             The reason for editing this role. Shows up on the audit log.
 
@@ -435,6 +460,12 @@ class Role(Hashable):
 
         if mentionable is not MISSING:
             payload["mentionable"] = mentionable
+
+        if emoji is not MISSING:
+            payload["unicode_emoji"] = emoji
+
+        if icon is not MISSING:
+            payload["icon"] = _bytes_to_base64_data(icon)
 
         data = await self._state.http.edit_role(self.guild.id, self.id, reason=reason, **payload)
         return Role(guild=self.guild, data=data, state=self._state)
