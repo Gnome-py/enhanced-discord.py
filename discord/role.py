@@ -161,11 +161,11 @@ class Role(Hashable):
     hoist: :class:`bool`
         Indicates if the role will be displayed separately from other members.
     icon: Optional[:class:`Asset`]
-        The icon for the role.
+        A custom image that is shown next to users with the role.
 
         .. versionadded:: 2.0
     emoji: Optional[:class:`str`]
-        The unicode emoji shown for the role.
+        The unicode emoji that is shown next to users with the role.
 
         .. versionadded:: 2.0
     position: :class:`int`
@@ -333,6 +333,7 @@ class Role(Hashable):
 
     @property
     def icon(self) -> Optional[Asset]:
+        """Optional[:class:`Asset`]: Returns the custom icon shown next to users with the role, if it exists."""
         if self._icon is None:
             return
         return Asset._from_role_icon(self._state, self.id, self._icon)
