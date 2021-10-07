@@ -174,7 +174,6 @@ class KeepAliveHandler(threading.Thread):
         self.latency: float = float("inf")
         self.heartbeat_timeout: float = ws._max_heartbeat_timeout
 
-
     def run(self) -> None:
         while not self._stop_ev.wait(self.interval):
             if self._last_recv + self.heartbeat_timeout < time.perf_counter():
