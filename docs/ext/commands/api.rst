@@ -429,6 +429,12 @@ Converters
 
 .. autofunction:: discord.ext.commands.run_converters
 
+Option
+~~~~~~
+
+.. autoclass:: discord.ext.commands.Option
+    :members:
+
 Flag Converter
 ~~~~~~~~~~~~~~~
 
