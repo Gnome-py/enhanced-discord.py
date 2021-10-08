@@ -255,10 +255,15 @@ class BotBase(GroupMixin):
         await self.create_slash_commands()
 
     async def create_slash_commands(self):
+        processed_command_names = set()
         global_commands: List[EditApplicationCommand] = []
         commands: defaultdict[int, List[EditApplicationCommand]] = defaultdict(list)
         for command in self.all_commands.values():
-            if command.hidden or (command.slash_command is None and not self.slash_commands):
+            if (
+                command.hidden
+                or (command.slash_command is None and not self.slash_commands)
+                or command.name in processed_command_names
+            ):
                 continue
 
             try:
@@ -269,6 +274,7 @@ class BotBase(GroupMixin):
             if payload is None:
                 continue
 
+            processed_command_names.add(command.name)
             guilds = command.slash_command_guilds or self.slash_command_guilds
             if guilds is None:
                 global_commands.append(payload)
